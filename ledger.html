@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
-<title>Resumen — polla</title>
+<title>Ledger — polla</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   :root { --bg:#0d1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --dim:#8b949e;
@@ -56,18 +56,20 @@
     <h1>⚽ Polla Mundial — panel</h1>
     <div class="meta">Actualizado 08 jun 12:47 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
   </header>
-  <nav class="nav"><a href="index.html" class="active">Resumen</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a></nav>
+  <nav class="nav"><a href="index.html">Resumen</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html" class="active">Ledger</a></nav>
   
-  <div class="kpis"><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Puntos reales</div><div class="kpi-sub">0/72 jugados</div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Proyección al cierre</div><div class="kpi-sub">reales + esperados pendientes</div></div><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Esperado (jugados)</div><div class="kpi-sub">diff <span class="zero">+0.0</span></div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Esperado total</div><div class="kpi-sub">todos los pronósticos</div></div><div class="kpi"><div class="kpi-val"><span class="pos">+0</span></div><div class="kpi-lbl">P&amp;L apuestas</div><div class="kpi-sub">equity $4000 / $4000</div></div></div>
   <section>
-    <h2>Dificultad por grupo</h2>
-    <p class="cap">Puntos esperados promedio por grupo (solo fase de grupos). Menor = más difícil de puntuar; la barra roja es el grupo más complicado.</p>
-    <div class="chart"><canvas id="chGrupo"></canvas></div>
+    <h2>Equity por modelo</h2>
+    <p class="cap">Bankroll actual de cada modelo (cada uno arrancó en $1000). En refinamiento.</p>
+    <div class="chart"><canvas id="chEquity"></canvas></div>
   </section>
   <section>
-    <h2>Dificultad por jornada</h2>
-    <p class="cap">Puntos esperados promedio por jornada de grupos. Menor = más difícil.</p>
-    <div class="chart"><canvas id="chJornada"></canvas></div>
+    <h2>Detalle del bankroll</h2>
+    <div class="tbl"><table><thead><tr>
+      <th>Modelo</th><th class="c">Equity</th><th class="c">P&amp;L</th><th class="c">%</th>
+      <th class="c">Cash</th><th class="c">En juego</th><th class="c">Abiertas</th>
+      <th class="c">EV esp.</th><th class="c">Liq.</th>
+    </tr></thead><tbody><tr><td class="b">ensemble</td><td class="c">$1000</td><td class="c"><span class="pos">+0</span></td><td class="c">+0.0%</td><td class="c">$613</td><td class="c">$387</td><td class="c">62</td><td class="c">$+73</td><td class="c">0</td></tr><tr><td class="b">elo</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$276</td><td class="c">$724</td><td class="c">65</td><td class="c">$+509</td><td class="c">0</td></tr><tr><td class="b">m1</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$171</td><td class="c">$829</td><td class="c">70</td><td class="c">$+354</td><td class="c">0</td></tr><tr><td class="b">market_fair</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$812</td><td class="c">$188</td><td class="c">36</td><td class="c">$+12</td><td class="c">0</td></tr></tbody></table></div>
   </section>
   <footer>
     Pts esp. = puntos esperados del marcador bajo el modelo · Δ = real − esperado.<br>
@@ -99,22 +101,11 @@
     }
   });</script>
 <script>document.addEventListener("DOMContentLoaded",function(){
-  new Chart(document.getElementById('chGrupo'), {
+  new Chart(document.getElementById('chEquity'), {
     type:'bar',
-    data:{ labels:["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"],
-            datasets:[{ label:"EP prom. por grupo", data:[4.07, 4.45, 3.79, 4.87, 4.89, 4.24, 4.94, 4.46, 4.83, 4.78, 4.56, 4.63],
-                        backgroundColor:["#58a6ff", "#58a6ff", "#f85149", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"], borderRadius:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false},
-        tooltip:{callbacks:{label:(c)=>' '+c.parsed.y.toFixed(2)+' pts esp.'}} },
-      scales:{ x:{grid:{display:false},ticks:{color:'#8b949e'}},
-                y:{grid:{color:'#21262d'},ticks:{color:'#8b949e'},beginAtZero:true} } }
-  });
-  new Chart(document.getElementById('chJornada'), {
-    type:'bar',
-    data:{ labels:["J1", "J2", "J3"],
-            datasets:[{ label:"EP prom. por jornada", data:[4.62, 4.72, 4.29],
-                        backgroundColor:["#58a6ff", "#58a6ff", "#f85149"], borderRadius:4 }] },
+    data:{ labels:["ensemble", "elo", "m1", "market_fair"],
+            datasets:[{ label:"Equity ($)", data:[1000.0, 1000.0, 1000.0, 1000.0],
+                        backgroundColor:["#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"], borderRadius:4 }] },
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false},
         tooltip:{callbacks:{label:(c)=>' '+c.parsed.y.toFixed(2)+' pts esp.'}} },
