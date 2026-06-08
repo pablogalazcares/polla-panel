@@ -60,6 +60,8 @@
   td.b { font-weight:700; }
   td.ph { color:var(--accent); font-weight:600; }
   td.ko { color:var(--dim); font-size:12.5px; }
+  .abbr { display:none; }
+  @media (max-width:560px) { .full { display:none; } .abbr { display:inline; } }
   tr.played { background:rgba(63,185,80,.06); }
   tr.locked td { color:var(--dim); }
   .pos { color:var(--pos); } .neg { color:var(--neg); } .zero { color:var(--dim); }
@@ -73,7 +75,7 @@
     <h1>⚽ Polla Mundial — panel</h1>
     <div class="meta">Actualizado 08 jun 12:47 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
   </header>
-  <nav class="nav"><a href="index.html">Resumen</a><a href="torneo.html">Torneo</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html" class="active">Ledger</a></nav>
+  <nav class="nav"><a href="index.html">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html" class="active">Ledger</a></nav>
   
   <section>
     <h2>Equity por modelo</h2>
@@ -86,7 +88,7 @@
       <th>Modelo</th><th class="c">Equity</th><th class="c">P&amp;L</th><th class="c">%</th>
       <th class="c">Cash</th><th class="c">En juego</th><th class="c">Abiertas</th>
       <th class="c">EV esp.</th><th class="c">Liq.</th>
-    </tr></thead><tbody><tr><td class="b">ensemble</td><td class="c">$1000</td><td class="c"><span class="pos">+0</span></td><td class="c">+0.0%</td><td class="c">$613</td><td class="c">$387</td><td class="c">62</td><td class="c">$+73</td><td class="c">0</td></tr><tr><td class="b">elo</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$276</td><td class="c">$724</td><td class="c">65</td><td class="c">$+509</td><td class="c">0</td></tr><tr><td class="b">m1</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$171</td><td class="c">$829</td><td class="c">70</td><td class="c">$+354</td><td class="c">0</td></tr><tr><td class="b">market_fair</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$812</td><td class="c">$188</td><td class="c">36</td><td class="c">$+12</td><td class="c">0</td></tr></tbody></table></div>
+    </tr></thead><tbody><tr><td class="b">gated</td><td class="c">$1000</td><td class="c"><span class="pos">+0</span></td><td class="c">+0.0%</td><td class="c">$923</td><td class="c">$77</td><td class="c">6</td><td class="c">$+3</td><td class="c">0</td></tr><tr><td class="b">market_fair</td><td class="c">$1000</td><td class="c"><span class="pos">+0</span></td><td class="c">+0.0%</td><td class="c">$887</td><td class="c">$113</td><td class="c">32</td><td class="c">$+7</td><td class="c">0</td></tr><tr><td class="b">elo</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$443</td><td class="c">$557</td><td class="c">65</td><td class="c">$+364</td><td class="c">0</td></tr><tr><td class="b">m1</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$324</td><td class="c">$676</td><td class="c">69</td><td class="c">$+283</td><td class="c">0</td></tr><tr><td class="b">ensemble</td><td class="c">$1000</td><td class="c"><span class="neg">-0</span></td><td class="c">-0.0%</td><td class="c">$753</td><td class="c">$247</td><td class="c">60</td><td class="c">$+46</td><td class="c">0</td></tr></tbody></table></div>
   </section>
   <footer>
     Pts esp. = puntos esperados del marcador bajo el modelo · Δ = real − esperado.<br>
@@ -120,9 +122,9 @@
 <script>document.addEventListener("DOMContentLoaded",function(){
   new Chart(document.getElementById('chEquity'), {
     type:'bar',
-    data:{ labels:["ensemble", "elo", "m1", "market_fair"],
-            datasets:[{ label:"Equity ($)", data:[1000.0, 1000.0, 1000.0, 1000.0],
-                        backgroundColor:["#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"], borderRadius:4 }] },
+    data:{ labels:["gated", "market_fair", "elo", "m1", "ensemble"],
+            datasets:[{ label:"Equity ($)", data:[1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
+                        backgroundColor:["#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"], borderRadius:4 }] },
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false},
         tooltip:{callbacks:{label:(c)=>' '+c.parsed.y.toFixed(2)+' pts esp.'}} },

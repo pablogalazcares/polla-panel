@@ -60,6 +60,8 @@
   td.b { font-weight:700; }
   td.ph { color:var(--accent); font-weight:600; }
   td.ko { color:var(--dim); font-size:12.5px; }
+  .abbr { display:none; }
+  @media (max-width:560px) { .full { display:none; } .abbr { display:inline; } }
   tr.played { background:rgba(63,185,80,.06); }
   tr.locked td { color:var(--dim); }
   .pos { color:var(--pos); } .neg { color:var(--neg); } .zero { color:var(--dim); }
@@ -73,9 +75,9 @@
     <h1>⚽ Polla Mundial — panel</h1>
     <div class="meta">Actualizado 08 jun 12:47 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
   </header>
-  <nav class="nav"><a href="index.html" class="active">Resumen</a><a href="torneo.html">Torneo</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a></nav>
+  <nav class="nav"><a href="index.html" class="active">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a></nav>
   
-  <div class="kpis"><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Puntos reales</div><div class="kpi-sub">0/72 jugados</div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Proyección al cierre</div><div class="kpi-sub">reales + esperados pendientes</div></div><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Esperado (jugados)</div><div class="kpi-sub">diff <span class="zero">+0.0</span></div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Esperado total</div><div class="kpi-sub">todos los pronósticos</div></div><div class="kpi"><div class="kpi-val"><span class="pos">+0</span></div><div class="kpi-lbl">P&amp;L apuestas</div><div class="kpi-sub">equity $4000 / $4000</div></div></div>
+  <div class="kpis"><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Puntos reales</div><div class="kpi-sub">0/72 jugados</div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Proyección al cierre</div><div class="kpi-sub">reales + esperados pendientes</div></div><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Esperado (jugados)</div><div class="kpi-sub">diff <span class="zero">+0.0</span></div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Esperado total</div><div class="kpi-sub">todos los pronósticos</div></div><div class="kpi"><div class="kpi-val"><span class="neg">-0</span></div><div class="kpi-lbl">P&amp;L apuestas</div><div class="kpi-sub">equity $5000 / $5000</div></div></div>
   <section>
     <h2>Dificultad por grupo</h2>
     <p class="cap">Puntos esperados promedio por grupo (solo fase de grupos). Menor = más difícil de puntuar; la barra roja es el grupo más complicado.</p>
