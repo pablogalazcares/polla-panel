@@ -4,151 +4,49 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
-<link rel="apple-touch-icon" href="icon.png">
-<link rel="icon" href="icon.png">
-<title>Resumen — polla</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<style>
-  :root { --bg:#0d1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --dim:#8b949e;
-           --pos:#3fb950; --neg:#f85149; --accent:#58a6ff; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.45
-         -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
-  .wrap { max-width:1000px; margin:0 auto; padding:14px 14px 48px; }
-  header h1 { font-size:19px; margin:2px 0; }
-  header .meta { color:var(--dim); font-size:13px; }
-  .nav { display:flex; gap:6px; margin:14px 0 8px; flex-wrap:wrap;
-          position:sticky; top:0; background:var(--bg); padding:8px 0; z-index:5; }
-  .nav a { color:var(--dim); text-decoration:none; font-size:14px; font-weight:600;
-            padding:7px 13px; border:1px solid var(--line); border-radius:999px; }
-  .nav a.active { color:#fff; background:var(--accent); border-color:var(--accent); }
-  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-           gap:10px; margin:14px 0; }
-  .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
-  .kpi-val { font-size:26px; font-weight:700; }
-  .kpi-lbl { color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-  .kpi-sub { color:var(--dim); font-size:12px; margin-top:4px; }
-  section { margin:24px 0; }
-  section > h2 { font-size:16px; margin:0 0 4px; }
-  .cap { color:var(--dim); font-size:13px; margin:0 0 12px; }
-  .chart { position:relative; height:300px; background:var(--card); border:1px solid var(--line);
-            border-radius:12px; padding:12px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; min-width:0; }
-  .card h3 { margin:2px 0 8px; font-size:15px; }
-  .card .tbl { border:none; border-radius:0; }
-  .card td, .card th { padding:6px 6px; }
-  td.pos { color:var(--dim); width:14px; text-align:center; }
-  tr.qual td.pos { color:var(--pos); font-weight:700; }
-  tr.qual { background:rgba(63,185,80,.07); }
-  .pcell { display:flex; align-items:center; gap:6px; min-width:72px; }
-  .pbar { flex:1; height:7px; background:#21262d; border-radius:5px; overflow:hidden; }
-  .pbar span { display:block; height:100%; border-radius:5px; }
-  .pbar.hi span { background:var(--pos); }
-  .pbar.mid span { background:var(--accent); }
-  .pbar.lo span { background:var(--neg); }
-  .pnum { color:var(--dim); font-size:12px; min-width:30px; text-align:right; }
-  .bracket { display:flex; gap:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:4px 2px 10px; }
-  .bcol { display:flex; flex-direction:column; justify-content:space-around; gap:8px; min-width:104px; }
-  .bcol-h { color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.03em; text-align:center; }
-  .bcol-champ { justify-content:center; }
-  .bx { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
-  .bx-t { padding:5px 8px; font-size:12.5px; white-space:nowrap; }
-  .bx-t + .bx-t { border-top:1px solid var(--line); }
-  .bx-t.win { font-weight:700; background:rgba(63,185,80,.12); }
-  .bx-t.lose { color:var(--dim); }
-  .champbox { background:var(--accent); color:#fff; font-weight:700; border-radius:8px; padding:10px 12px; text-align:center; white-space:nowrap; }
-  .tbl { overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:12px; }
-  table { border-collapse:collapse; width:100%; font-size:13.5px; white-space:nowrap; }
-  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); }
-  thead th { position:sticky; top:0; background:var(--card); color:var(--dim); font-weight:600;
-              font-size:12px; text-transform:uppercase; letter-spacing:.03em; user-select:none; }
-  thead th.asc::after { content:" \2191"; color:var(--accent); }
-  thead th.desc::after { content:" \2193"; color:var(--accent); }
-  tbody tr:last-child td { border-bottom:none; }
-  td.c, th.c { text-align:center; }
-  td.b { font-weight:700; }
-  td.ph { color:var(--accent); font-weight:600; }
-  td.ko { color:var(--dim); font-size:12.5px; }
-  .abbr { display:none; }
-  @media (max-width:560px) { .full { display:none; } .abbr { display:inline; } }
-  tr.played { background:rgba(63,185,80,.06); }
-  tr.locked td { color:var(--dim); }
-  .pos { color:var(--pos); } .neg { color:var(--neg); } .zero { color:var(--dim); }
-  footer { color:var(--dim); font-size:12px; margin-top:32px; text-align:center; }
-  a { color:var(--accent); }
-</style>
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>La Polla</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>⚽ Polla Mundial — panel</h1>
-    <div class="meta">Actualizado 08 jun 15:51 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
+  <header class="top">
+    <div>
+      <h1>La Polla</h1>
+      <div class="muted" id="updated">cargando…</div>
+    </div>
+    <button id="refresh" class="btn" aria-label="Actualizar">↻</button>
   </header>
-  <nav class="nav"><a href="index.html" class="active">Resumen</a><a href="grupos.html">Grupos</a><a href="eliminatoria.html">Eliminatoria</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a><a href="estrategia.html">Estrategia</a><a href="modelos.html">Modelos</a></nav>
-  
-  <div class="kpis"><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Puntos reales</div><div class="kpi-sub">0/72 jugados</div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Proyección al cierre</div><div class="kpi-sub">reales + esperados pendientes</div></div><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Esperado (jugados)</div><div class="kpi-sub">diff <span class="zero">+0.0</span></div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Esperado total</div><div class="kpi-sub">todos los pronósticos</div></div><div class="kpi"><div class="kpi-val"><span class="neg">-0</span></div><div class="kpi-lbl">P&amp;L apuestas</div><div class="kpi-sub">equity $5000 / $5000</div></div></div>
-  <section>
-    <h2>Dificultad por grupo</h2>
-    <p class="cap">Puntos esperados promedio por grupo (solo fase de grupos). Menor = más difícil de puntuar; la barra roja es el grupo más complicado.</p>
-    <div class="chart"><canvas id="chGrupo"></canvas></div>
-  </section>
-  <section>
-    <h2>Dificultad por jornada</h2>
-    <p class="cap">Puntos esperados promedio por jornada de grupos. Menor = más difícil.</p>
-    <div class="chart"><canvas id="chJornada"></canvas></div>
-  </section>
-  <footer>
-    Pts esp. = puntos esperados del marcador bajo el modelo · Δ = real − esperado.<br>
-    Panel automático generado desde el repo · 2026.
-  </footer>
+
+  <div id="status" class="status" hidden></div>
+
+  <main id="app" aria-busy="true">
+    <section id="hero" class="kpis" aria-label="Resumen"></section>
+    <section id="next-wrap" hidden>
+      <h2>Próximos cierres</h2>
+      <div id="next" class="next"></div>
+    </section>
+    <section id="bets-wrap" hidden>
+      <h2>Mis apuestas vs puntos reales</h2>
+      <p class="cap">Toca un encabezado para ordenar.</p>
+      <div class="tbl"><table id="bets" class="sortable"></table></div>
+    </section>
+    <section id="changes-wrap" hidden>
+      <h2>Cambios del modelo</h2>
+      <div id="changes" class="changes"></div>
+    </section>
+  </main>
+
+  <footer class="foot muted">Panel personal · datos del modelo, no público.</footer>
 </div>
-<script>
-  document.querySelectorAll('table.sortable').forEach(function(t){
-    var ths = t.tHead.rows[0].cells;
-    Array.prototype.forEach.call(ths, function(th, i){
-      th.style.cursor='pointer';
-      th.addEventListener('click', function(){
-        var num = th.dataset.type === 'num';
-        var cur = th.classList.contains('asc');
-        Array.prototype.forEach.call(ths, function(o){o.classList.remove('asc','desc');});
-        th.classList.add(cur ? 'desc' : 'asc');
-        var dir = cur ? -1 : 1;
-        var rows = Array.prototype.slice.call(t.tBodies[0].rows);
-        rows.sort(function(a,b){
-          var x = key(a.cells[i], num), y = key(b.cells[i], num);
-          return x < y ? -dir : (x > y ? dir : 0);
-        });
-        rows.forEach(function(r){ t.tBodies[0].appendChild(r); });
-      });
-    });
-    function key(cell, num){
-      var v = cell.dataset.sort !== undefined ? cell.dataset.sort : cell.textContent.trim();
-      return num ? parseFloat(v) : v.toLowerCase();
-    }
-  });</script>
-<script>document.addEventListener("DOMContentLoaded",function(){
-  new Chart(document.getElementById('chGrupo'), {
-    type:'bar',
-    data:{ labels:["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"],
-            datasets:[{ label:"EP prom. por grupo", data:[4.07, 4.45, 3.79, 4.88, 4.9, 4.24, 4.95, 4.47, 4.83, 4.78, 4.56, 4.63],
-                        backgroundColor:["#58a6ff", "#58a6ff", "#f85149", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"], borderRadius:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false},
-        tooltip:{callbacks:{label:(c)=>' '+c.parsed.y.toFixed(2)+' pts esp.'}} },
-      scales:{ x:{grid:{display:false},ticks:{color:'#8b949e'}},
-                y:{grid:{color:'#21262d'},ticks:{color:'#8b949e'},beginAtZero:true} } }
-  });
-  new Chart(document.getElementById('chJornada'), {
-    type:'bar',
-    data:{ labels:["J1", "J2", "J3"],
-            datasets:[{ label:"EP prom. por jornada", data:[4.63, 4.72, 4.29],
-                        backgroundColor:["#58a6ff", "#58a6ff", "#f85149"], borderRadius:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false},
-        tooltip:{callbacks:{label:(c)=>' '+c.parsed.y.toFixed(2)+' pts esp.'}} },
-      scales:{ x:{grid:{display:false},ticks:{color:'#8b949e'}},
-                y:{grid:{color:'#21262d'},ticks:{color:'#8b949e'},beginAtZero:true} } }
-  });});</script>
+
+<!-- fallback para abrir en file:// (fetch local suele estar bloqueado). Si no existe, se ignora. -->
+<script src="data/polla.js" onerror="window.__POLLA_NOJS__=1"></script>
+<script src="app.js"></script>
 </body>
 </html>
