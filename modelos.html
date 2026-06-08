@@ -48,6 +48,16 @@
   .pbar.mid span { background:var(--accent); }
   .pbar.lo span { background:var(--neg); }
   .pnum { color:var(--dim); font-size:12px; min-width:30px; text-align:right; }
+  .bracket { display:flex; gap:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:4px 2px 10px; }
+  .bcol { display:flex; flex-direction:column; justify-content:space-around; gap:8px; min-width:104px; }
+  .bcol-h { color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.03em; text-align:center; }
+  .bcol-champ { justify-content:center; }
+  .bx { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .bx-t { padding:5px 8px; font-size:12.5px; white-space:nowrap; }
+  .bx-t + .bx-t { border-top:1px solid var(--line); }
+  .bx-t.win { font-weight:700; background:rgba(63,185,80,.12); }
+  .bx-t.lose { color:var(--dim); }
+  .champbox { background:var(--accent); color:#fff; font-weight:700; border-radius:8px; padding:10px 12px; text-align:center; white-space:nowrap; }
   .tbl { overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:12px; }
   table { border-collapse:collapse; width:100%; font-size:13.5px; white-space:nowrap; }
   th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); }
@@ -75,7 +85,7 @@
     <h1>⚽ Polla Mundial — panel</h1>
     <div class="meta">Actualizado 08 jun 15:51 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
   </header>
-  <nav class="nav"><a href="index.html">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a><a href="estrategia.html">Estrategia</a><a href="modelos.html" class="active">Modelos</a></nav>
+  <nav class="nav"><a href="index.html">Resumen</a><a href="grupos.html">Grupos</a><a href="eliminatoria.html">Eliminatoria</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a><a href="estrategia.html">Estrategia</a><a href="modelos.html" class="active">Modelos</a></nav>
   
   <style>
     .mcard{border:1px solid #21262d;border-radius:8px;padding:12px 14px;margin:10px 0;background:#0d1117}
