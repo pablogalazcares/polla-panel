@@ -73,9 +73,9 @@
 <div class="wrap">
   <header>
     <h1>⚽ Polla Mundial — panel</h1>
-    <div class="meta">Actualizado 08 jun 12:47 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
+    <div class="meta">Actualizado 08 jun 15:21 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
   </header>
-  <nav class="nav"><a href="index.html" class="active">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a></nav>
+  <nav class="nav"><a href="index.html" class="active">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a><a href="estrategia.html">Estrategia</a></nav>
   
   <div class="kpis"><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Puntos reales</div><div class="kpi-sub">0/72 jugados</div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Proyección al cierre</div><div class="kpi-sub">reales + esperados pendientes</div></div><div class="kpi"><div class="kpi-val">0</div><div class="kpi-lbl">Esperado (jugados)</div><div class="kpi-sub">diff <span class="zero">+0.0</span></div></div><div class="kpi"><div class="kpi-val">327</div><div class="kpi-lbl">Esperado total</div><div class="kpi-sub">todos los pronósticos</div></div><div class="kpi"><div class="kpi-val"><span class="neg">-0</span></div><div class="kpi-lbl">P&amp;L apuestas</div><div class="kpi-sub">equity $5000 / $5000</div></div></div>
   <section>
@@ -121,7 +121,7 @@
   new Chart(document.getElementById('chGrupo'), {
     type:'bar',
     data:{ labels:["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"],
-            datasets:[{ label:"EP prom. por grupo", data:[4.07, 4.45, 3.79, 4.87, 4.89, 4.24, 4.94, 4.46, 4.83, 4.78, 4.56, 4.63],
+            datasets:[{ label:"EP prom. por grupo", data:[4.07, 4.45, 3.79, 4.88, 4.9, 4.24, 4.95, 4.47, 4.83, 4.78, 4.56, 4.63],
                         backgroundColor:["#58a6ff", "#58a6ff", "#f85149", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff", "#58a6ff"], borderRadius:4 }] },
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false},
@@ -132,7 +132,7 @@
   new Chart(document.getElementById('chJornada'), {
     type:'bar',
     data:{ labels:["J1", "J2", "J3"],
-            datasets:[{ label:"EP prom. por jornada", data:[4.62, 4.72, 4.29],
+            datasets:[{ label:"EP prom. por jornada", data:[4.63, 4.72, 4.29],
                         backgroundColor:["#58a6ff", "#58a6ff", "#f85149"], borderRadius:4 }] },
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false},
