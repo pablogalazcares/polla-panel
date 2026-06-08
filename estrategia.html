@@ -73,47 +73,48 @@
 <div class="wrap">
   <header>
     <h1>⚽ Polla Mundial — panel</h1>
-    <div class="meta">Actualizado 08 jun 15:50 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
+    <div class="meta">Actualizado 08 jun 15:51 UTC · 72 partidos · 0 cerrados · 0 jugados</div>
   </header>
-  <nav class="nav"><a href="index.html">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a><a href="estrategia.html" class="active">Estrategia</a></nav>
+  <nav class="nav"><a href="index.html">Resumen</a><a href="grupos.html">Grupos</a><a href="apuestas.html">Apuestas</a><a href="cambios.html">Cambios</a><a href="ledger.html">Ledger</a><a href="estrategia.html" class="active">Estrategia</a><a href="modelos.html">Modelos</a></nav>
   
   <style>
     .mtx{border-collapse:collapse;font-size:12px;width:100%}
     .mtx th,.mtx td{padding:5px 7px;text-align:center;border-bottom:1px solid #21262d;white-space:nowrap}
     .mtx td.rname{text-align:left;color:#c9d1d9} .mtx .n{color:#6e7681;font-size:10px}
     .mtx td.best{background:#12381f;color:#3fb950;font-weight:600}
-    .mtx td.na{color:#484f58}
+    .mtx td.pos{color:#3fb950} .mtx td.neg{color:#f85149} .mtx td.na{color:#484f58}
     .mtx tr.grp td{text-align:left;color:#8b949e;background:#0d1117;font-weight:600;padding-top:10px}
-    .tbl-wrap{overflow-x:auto} .find li{margin:4px 0}
+    .tbl-wrap{overflow-x:auto} .find li{margin:5px 0}
   </style>
   <section>
-    <h2>Matriz competición × modelo (RPS)</h2>
-    <p class="cap">RPS fuera de muestra (menor = mejor). En verde el mejor modelo de cada fila.
-    "—" = no calculable (sin cuotas históricas en torneos). El <b>Mundial 2026</b> va vacío: es futuro.</p>
-    <p class="cap">El <b>mercado</b> gana donde hay cuotas; <b>M1</b> es el mejor modelo de resultados.
-    "Router 2 (stack)" optimiza la <i>decisión de apuesta</i> (yield +3.8%), no la calibración RPS,
-    por eso su RPS no luce bajo.</p>
+    <h2>1 · Predicción — matriz competición × modelo (RPS)</h2>
+    <p class="cap">RPS fuera de muestra (menor = mejor); verde = mejor modelo de la fila. "—" = no calculable (sin cuotas históricas en torneos). <b>Mundial 2026</b> vacío: es futuro.</p>
     <div class="tbl-wrap"><table class="mtx"><thead><tr><th>Competición</th><th>Naive</th><th>M0 Elo</th><th>M1 DC</th><th>M2 shrink</th><th>M3 Mercado</th><th>M4 ML</th><th>LogReg</th><th>Ensemble</th><th>Router 2 (stack)</th></tr></thead><tbody><tr class="grp"><td colspan="10">Torneo</td></tr><tr><td class="rname">Mundial 2026</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr><td class="rname">Mundial (2018-22) <span class="n">n=128</span></td><td>0.243</td><td class="best">0.209</td><td>0.210</td><td>0.223</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>0.209</td><td class="na">—</td></tr><tr><td class="rname">Eurocopa <span class="n">n=102</span></td><td>0.235</td><td>0.188</td><td class="best">0.184</td><td>0.194</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>0.186</td><td class="na">—</td></tr><tr><td class="rname">Copa América <span class="n">n=86</span></td><td>0.224</td><td class="best">0.150</td><td>0.155</td><td>0.182</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>0.158</td><td class="na">—</td></tr><tr><td class="rname">Copa África <span class="n">n=208</span></td><td>0.221</td><td>0.190</td><td class="best">0.185</td><td>0.197</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>0.188</td><td class="na">—</td></tr><tr><td class="rname">Copa Asia <span class="n">n=102</span></td><td>0.237</td><td>0.180</td><td class="best">0.173</td><td>0.213</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>0.182</td><td class="na">—</td></tr><tr class="grp"><td colspan="10">Liga Europa</td></tr><tr><td class="rname">Premier (Inglaterra) <span class="n">n=372</span></td><td>0.237</td><td>0.219</td><td>0.214</td><td>0.215</td><td class="best">0.197</td><td>0.224</td><td>0.200</td><td>0.214</td><td>0.279</td></tr><tr><td class="rname">La Liga (España) <span class="n">n=380</span></td><td>0.229</td><td>0.206</td><td>0.199</td><td>0.203</td><td class="best">0.187</td><td>0.206</td><td>0.191</td><td>0.201</td><td>0.246</td></tr><tr><td class="rname">Serie A (Italia) <span class="n">n=372</span></td><td>0.229</td><td>0.197</td><td>0.190</td><td>0.194</td><td class="best">0.184</td><td>0.200</td><td>0.184</td><td>0.191</td><td>0.244</td></tr><tr><td class="rname">Bundesliga (Alemania) <span class="n">n=290</span></td><td>0.238</td><td>0.228</td><td>0.214</td><td>0.215</td><td class="best">0.202</td><td>0.224</td><td>0.207</td><td>0.215</td><td>0.279</td></tr><tr><td class="rname">Ligue 1 (Francia) <span class="n">n=306</span></td><td>0.236</td><td>0.220</td><td>0.213</td><td>0.213</td><td class="best">0.201</td><td>0.227</td><td>0.207</td><td>0.213</td><td>0.274</td></tr><tr class="grp"><td colspan="10">Liga Sudam/Mex</td></tr><tr><td class="rname">Argentina <span class="n">n=465</span></td><td>0.221</td><td>0.230</td><td>0.218</td><td>0.218</td><td class="best">0.215</td><td class="na">—</td><td class="na">—</td><td>0.219</td><td class="na">—</td></tr><tr><td class="rname">Brasil <span class="n">n=336</span></td><td>0.217</td><td>0.239</td><td>0.208</td><td>0.209</td><td class="best">0.196</td><td class="na">—</td><td class="na">—</td><td>0.215</td><td class="na">—</td></tr><tr><td class="rname">Mexico <span class="n">n=135</span></td><td>0.224</td><td>0.194</td><td class="best">0.187</td><td>0.190</td><td>0.189</td><td class="na">—</td><td class="na">—</td><td>0.188</td><td class="na">—</td></tr></tbody></table></div>
+    <p class="cap">El <b>mercado</b> gana donde hay cuotas; <b>M1</b> es el mejor modelo de resultados. "Router 2" optimiza la <i>decisión</i> (yield), no la calibración RPS.</p>
   </section>
   <section>
-    <h2>Hallazgos de apuestas</h2>
+    <h2>2 · ¿Cómo le ganamos al mercado, si el mercado es la info?</h2>
+    <p>No le ganamos <i>prediciendo</i> mejor (eso falla). "El mercado" no es <b>un</b> precio: son <b>~25 precios distintos</b>.</p>
     <ul class="find">
-      <li><b>El mercado de cierre es el techo</b> de predicción (~0.193 RPS); ningún modelo lo bate consistentemente.</li>
-      <li><b>El edge está en el precio, no en el modelo:</b> line shopping (mejor cuota entre ~25 casas). Apostar los desacuerdos del modelo con el mercado <b>funde el bankroll</b>.</li>
-      <li><b>La varianza es del staking:</b> Kelly sobre longshots con edge≈0 = lotería. Con stake plano los "edges" colapsan a ~0%.</li>
-      <li><b>Cuotas moderadas (≤4):</b> line shopping en favoritos da <b>+2.3% estable</b> (5/5 temporadas); longshots (&gt;4) pierden (−4%).</li>
-      <li><b>Mercados menos eficientes rinden más:</b> Argentina/México <b>+4-5%</b> vs Europa +2.3%.</li>
-      <li><b>Router:</b> el gating duro por familia <b>overfittea</b>; el <b>stacking</b> (router 2) da <b>+3.8%</b> fuera de muestra.</li>
-      <li><b>Predictibilidad = balance:</b> favoritos claros ~0.147 RPS; parejos ~0.215 (azar). El Mundial es lo <b>más difícil</b> de predecir; sus eliminatorias, casi una moneda.</li>
+      <li><b>Brújula:</b> usamos el consenso/sharp (Pinnacle) como la <b>probabilidad justa</b> — la mejor información.</li>
+      <li><b>Edge:</b> apostamos al <b>mejor precio</b> entre las 25 casas. La ganancia = la <b>dispersión</b> entre el mejor precio y el justo (una casa blanda que paga de más). No vencemos su información, explotamos su <b>inconsistencia de precios</b>.</li>
+      <li><b>Se amplifica</b> en mercados menos eficientes (Argentina/México: el consenso ya es más blando → +4-5%) y tomando el precio <b>antes del cierre</b> (CLV: la línea se mueve hacia el sharp).</li>
     </ul>
   </section>
   <section>
-    <h2>Estrategia / router para el Mundial 2026</h2>
+    <h2>3 · Retorno — matriz competición × modelo (ROI%)</h2>
+    <p class="cap">Bankroll $100 <b>secuencial</b> (puede fundirse), mejor precio, cuotas ≤4, Kelly 0.10. Verde = ganó, rojo = perdió. Solo ligas (los torneos no tienen cuotas).</p>
+    <div class="tbl-wrap"><table class="mtx"><thead><tr><th>Competición</th><th>Mercado</th><th>M1</th><th>M4 ML</th><th>Ensemble</th><th>Router 2</th><th>Gated</th></tr></thead><tbody><tr class="grp"><td colspan="7">Torneo</td></tr><tr><td class="rname">Mundial 2026</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr><td class="rname">Mundial (2018-22)</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr><td class="rname">Eurocopa</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr><td class="rname">Copa América</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr><td class="rname">Copa África</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr><td class="rname">Copa Asia</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr><tr class="grp"><td colspan="7">Liga Europa</td></tr><tr><td class="rname">Premier (Inglaterra) <span class="n">n=744</span></td><td class="pos">+13.2%</td><td class="neg">-33.2%</td><td class="pos">+16.4%</td><td class="neg">-8.5%</td><td class="pos">+5.7%</td><td class="pos">+3.2%</td></tr><tr><td class="rname">La Liga (España) <span class="n">n=752</span></td><td class="neg">-14.5%</td><td class="neg">-30.4%</td><td class="pos">+36.0%</td><td class="neg">-7.0%</td><td class="pos">+2.2%</td><td class="neg">-7.1%</td></tr><tr><td class="rname">Serie A (Italia) <span class="n">n=752</span></td><td class="pos">+6.2%</td><td class="neg">-32.9%</td><td class="pos">+2.1%</td><td class="neg">-18.9%</td><td class="pos">+3.5%</td><td class="pos">+5.1%</td></tr><tr><td class="rname">Bundesliga (Alemania) <span class="n">n=580</span></td><td class="pos">+9.3%</td><td class="neg">-58.1%</td><td class="pos">+37.8%</td><td class="neg">-4.9%</td><td class="pos">+22.7%</td><td class="pos">+5.8%</td></tr><tr><td class="rname">Ligue 1 (Francia) <span class="n">n=604</span></td><td class="pos">+5.1%</td><td class="pos">+20.1%</td><td class="pos">+58.8%</td><td class="pos">+15.8%</td><td class="pos">+21.6%</td><td class="neg">-1.8%</td></tr><tr class="grp"><td colspan="7">Liga Sudam/Mex</td></tr><tr><td class="rname">Argentina <span class="n">n=764</span></td><td class="pos">+0.9%</td><td class="pos">+6.3%</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="neg">-0.2%</td></tr><tr><td class="rname">Brasil <span class="n">n=557</span></td><td class="pos">+4.8%</td><td class="neg">-1.4%</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="pos">+1.9%</td></tr><tr><td class="rname">Mexico <span class="n">n=676</span></td><td class="neg">-6.5%</td><td class="neg">-10.7%</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="neg">-1.2%</td></tr></tbody></table></div>
+    <p class="cap"><b>Ojo:</b> es UNA realización → alta varianza. Los +37/+59% de M4 son la <b>lotería</b> ya desmentida (multi-temporada). El <b>gated</b> es la estrategia disciplinada: pocas apuestas, swings acotados. M1 se funde (−30 a −58%).</p>
+  </section>
+  <section>
+    <h2>4 · Hallazgos y estrategia para el Mundial 2026</h2>
     <ul class="find">
-      <li><b>Probabilidad:</b> el <b>mercado en vivo</b> (las ~25 casas cada 2h). Respaldo sin cuotas: M1/Elo (no M2).</li>
-      <li><b>Decisión (gate de BALANCE):</b> apostar <b>solo favoritos claros (≥60%), cuota ≤4, fase de grupos</b>, al mejor precio, stake plano / Kelly bajo.</li>
-      <li><b>Saltar:</b> partidos parejos y <b>todas las eliminatorias</b> (azar): ahí el modelo no aporta y la varianza es máxima.</li>
-      <li>Ya corre en el bankroll en vivo como el modelo <b>gated</b> (ver Ledger): pocas apuestas, alta convicción.</li>
+      <li><b>El mercado de cierre es el techo</b>; ningún modelo lo bate consistentemente prediciendo.</li>
+      <li><b>El edge es el precio</b> (line shopping), no el modelo. Apostar los desacuerdos del modelo funde el bankroll.</li>
+      <li><b>Cuotas ≤4 (favoritos):</b> +2.3% estable (5/5 temporadas); longshots pierden. <b>Mercados blandos</b> (ARG/MEX) rinden +4-5%.</li>
+      <li><b>Predictibilidad = balance:</b> favoritos ~0.147 RPS; parejos ~0.215 (azar). El Mundial es lo más difícil; sus eliminatorias, una moneda.</li>
+      <li><b>Estrategia (modelo <code>gated</code>, ya en vivo):</b> probabilidad = mercado; apostar <b>solo favoritos ≥60%, cuota ≤4, fase de grupos</b> al mejor precio, stake bajo; <b>saltar parejos y eliminatorias</b>.</li>
     </ul>
   </section>
   <footer>
