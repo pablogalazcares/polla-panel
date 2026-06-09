@@ -119,6 +119,15 @@ async function loadData(force){
 }
 function pools(d){ return d && Array.isArray(d.pools) ? d.pools : []; }
 function poolById(d, id){ return pools(d).find(p=>p.id===id); }
+/* partidos del torneo (union de las pollas, deduplicados; mismos fixtures) */
+function allMatches(d){
+  const seen={};
+  pools(d).forEach(p=>(p.matches||[]).forEach(m=>{
+    const k=norm(m.home)+"|"+norm(m.away);   // por equipos (las zonas horarias difieren entre pollas)
+    if(!seen[k] || (m.actual_result && !seen[k].actual_result)) seen[k]=m;
+  }));
+  return Object.values(seen);
+}
 function nextClose(p){
   const fut=(p.matches||[]).filter(m=>!m.actual_result && parseISO(m.kickoff)>Date.now());
   return fut.length ? fut.reduce((a,b)=>parseISO(a.kickoff)<parseISO(b.kickoff)?a:b).kickoff : null;
@@ -173,9 +182,22 @@ function renderRoot(){
       `</div></a>`;
   }).join("");
 
-  $("#view").innerHTML = agg+
+  // En vivo (en juego ahora) y Últimos resultados — nivel torneo (reciclado de P3)
+  const tm=allMatches(DATA);
+  const live=tm.filter(m=>{ const t=parseISO(m.kickoff); return !m.actual_result && t && now>=t && now<=t+135*60*1000; })
+    .sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
+  const recent=tm.filter(m=>m.actual_result).sort((a,b)=>parseISO(b.kickoff)-parseISO(a.kickoff)).slice(0,6);
+  const liveHtml = live.length ? `<section><h2>En vivo</h2><div class="next">`+live.map(m=>
+    `<div class="nx live"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
+    `<span class="cd live">en juego</span></div>`).join("")+`</div></section>` : "";
+  const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><div class="next">`+recent.map(m=>
+    `<div class="nx"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
+    `<span class="score b">${esc(m.actual_result)}${m.provisional?'<span class="prov">*</span>':''}</span>`+
+    `<span class="cd muted">${relTime(m.kickoff)}</span></div>`).join("")+`</div></section>` : "";
+
+  $("#view").innerHTML = agg+ liveHtml+
     `<section><h2>Próximos cierres</h2><div class="next">${nextHtml}</div></section>`+
-    `<section><h2>Mis pollas</h2><div class="pools">${cards}</div></section>`;
+    `<section><h2>Mis pollas</h2><div class="pools">${cards}</div></section>`+ recentHtml;
   tickCountdowns();
 }
 

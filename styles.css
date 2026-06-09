@@ -43,6 +43,10 @@ h2{font-size:15px; margin:22px 0 8px}
 .nx .pick{font-weight:700}
 .nx .cd{color:var(--warn); font-size:12.5px; white-space:nowrap}
 .chip{display:inline-block; color:var(--accent); font-weight:600; font-size:11.5px; margin-right:6px}
+.nx.live{border-color:var(--warn)}
+.nx .cd.live{color:var(--warn); font-weight:700}
+.nx .score{font-variant-numeric:tabular-nums; white-space:nowrap}
+.nx .score.b{font-weight:700}
 
 /* tabla */
 .tbl{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:12px}
