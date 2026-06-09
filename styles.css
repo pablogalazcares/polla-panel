@@ -170,4 +170,10 @@ tr.played{background:rgba(63,185,80,.06)}
 .st-row.me .st-lbl{font-weight:700}
 .st-row .st-pts{font-weight:700; font-variant-numeric:tabular-nums}
 
+/* resultado provisorio (ESPN, antes de que la plataforma confirme) */
+.prov{color:var(--warn); font-weight:700}
+tr.prov-row{background:rgba(210,153,34,.08)}
+.stat.live{border-color:var(--warn)}
+.stat.live b{color:var(--warn)}
+
 @media (prefers-reduced-motion: reduce){ *{transition:none !important} .btn:active{transform:none} }

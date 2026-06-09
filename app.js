@@ -219,14 +219,16 @@ function renderTab(p){
     const byG={}; (p.matches||[]).forEach(m=>{ const g=groupOf(m.fase); if(g&&typeof m.ep==="number"){ (byG[g]=byG[g]||[]).push(m.ep); }});
     const gItems=Object.keys(byG).sort().map(g=>({label:"G"+g, value:byG[g].reduce((a,b)=>a+b,0)/byG[g].length}));
     const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
+    const liveStat=pt.provisional_n?`<div class="stat live"><b>${pt.live}</b><span>en vivo (prov.)</span></div>`:"";
     body.innerHTML = moneyBlock(p)+
       `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color)}`+
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
-      `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${bonusPot}</div></section>`+
+      `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${liveStat}${bonusPot}</div></section>`+
       (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${spark(p.history.map(h=>h.proj),300,60,p.color)}</div><p class="cap">Proyección de puntos en el tiempo.</p></section>`:"")+
       (gItems.length?`<section><h2>Dificultad por grupo</h2><p class="cap">Puntos esperados promedio por partido (menor = más difícil de puntuar).</p>${barChart(gItems,p.color)}</section>`:"");
   } else if(TAB==="apuestas"){
-    body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
+    const hasProv=(p.matches||[]).some(m=>m.provisional);
+    body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.${hasProv?' <span class="prov">*</span> resultado provisorio (ESPN, antes de que la polla lo confirme).':''}</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
     buildBets(p);
   } else if(TAB==="posiciones"){
     const ml=multiLine(p.leaderboard_series, p.color);
@@ -252,11 +254,12 @@ function buildBets(p){
     const played=!!m.actual_result, ep=typeof m.ep==="number"?m.ep:null;
     const pe=(played&&typeof m.points_earned==="number")?m.points_earned:null;
     const diff=(pe!=null&&ep!=null)?pe-ep:null;
-    return {played, cells:[
+    const realTxt = m.actual_result ? (esc(m.actual_result)+(m.provisional?'<span class="prov">*</span>':'')) : "·";
+    return {played, prov:!!m.provisional, cells:[
       {h:`<span class="ph">${esc(phaseShort(m.fase))}</span>`, s:phaseKey(m.fase), cls:"ph"},
       {h:teamCell(m.home,m.away), s:norm(m.home), cls:"match"},
       {h:esc(m.user_pick||"—"), s:m.user_pick||"", cls:"c b"},
-      {h:esc(m.actual_result||"·"), s:m.actual_result||"", cls:"c"},
+      {h:realTxt, s:m.actual_result||"", cls:"c"},
       {h:numOr(ep,2,"—"), s:ep==null?-1:ep, cls:"c"},
       {h:played?numOr(pe,0,"·"):"·", s:pe==null?-1:pe, cls:"c b"},
       {h:diff!=null?signed(diff,1):"·", s:diff==null?-999:diff, cls:"c"},
@@ -269,7 +272,7 @@ function buildBets(p){
   sortState={i:null,dir:1}; paintBets();
 }
 function paintBets(){ const tb=$("#bets tbody"); if(!tb) return;
-  tb.innerHTML=betsRows.map(r=>`<tr class="${r.played?"played":""}">`+r.cells.map(c=>`<td class="${c.cls}">${c.h}</td>`).join("")+`</tr>`).join(""); }
+  tb.innerHTML=betsRows.map(r=>`<tr class="${r.played?"played":""}${r.prov?" prov-row":""}">`+r.cells.map(c=>`<td class="${c.cls}">${c.h}</td>`).join("")+`</tr>`).join(""); }
 function sortBets(i, th){
   const dir=(sortState.i===i&&sortState.dir===1)?-1:1; sortState={i,dir};
   document.querySelectorAll("#bets thead th").forEach(x=>x.classList.remove("asc","desc"));
