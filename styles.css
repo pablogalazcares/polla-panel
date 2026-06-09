@@ -48,6 +48,18 @@ h2{font-size:15px; margin:22px 0 8px}
 .nx .score{font-variant-numeric:tabular-nums; white-space:nowrap}
 .nx .score.b{font-weight:700}
 
+/* fila expandible (próximos partidos): apuesta + EP por polla */
+.nx.exp{display:block; flex-direction:column; align-items:stretch}
+.nx.exp .nx-h{display:flex; align-items:center; gap:10px; cursor:pointer}
+.nx.exp .nx-h .who{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.nx .pick.varia{color:var(--warn)}
+.pp-list{display:none; flex-direction:column; gap:6px; margin-top:9px; padding-top:9px; border-top:1px solid var(--line)}
+.nx.exp.open .pp-list{display:flex}
+.pp{display:flex; align-items:center; gap:8px; font-size:12.5px}
+.pp-name{flex:1; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pp-pick{font-weight:700}
+.pp-ep{color:var(--dim); width:66px; text-align:right; font-variant-numeric:tabular-nums}
+
 /* tabla */
 .tbl{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:12px}
 table{border-collapse:collapse; width:100%; font-size:13.5px; white-space:nowrap}

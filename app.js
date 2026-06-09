@@ -149,16 +149,23 @@ function renderRoot(){
     `<div><b>${clp(tot.pozo)}</b><span>en juego (pozos)</span></div>`+
     `<div><b>${ps.length}</b><span>pollas</span></div></div>`;
 
-  const now=Date.now(), H48=48*3600*1000; let up=[];
-  ps.forEach(p=>(p.matches||[]).forEach(m=>{ const t=parseISO(m.kickoff);
-    if(!m.actual_result && t && t-now>0 && t-now<=H48) up.push({p,m}); }));
-  up.sort((a,b)=>parseISO(a.m.kickoff)-parseISO(b.m.kickoff));
-  const nextHtml = up.length ? up.slice(0,10).map(({p,m})=>
-    `<div class="nx"><span class="dot" style="background:${esc(p.color)}"></span>`+
-    `<span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
-    `<span class="pick">${esc(m.user_pick||"—")}</span>`+
-    `<span class="cd" data-cd="${esc(m.kickoff)}">${countdown(m.kickoff)}</span></div>`
-  ).join("") : `<div class="nx muted">Sin cierres en las próximas 48 h.</div>`;
+  const now=Date.now();
+  // próximos 5 PARTIDOS (deduplicados por equipos); cada uno despliega la apuesta y EP por polla
+  const up5=allMatches(DATA).filter(m=>!m.actual_result && parseISO(m.kickoff)>now)
+    .sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff)).slice(0,5);
+  const nextHtml = up5.length ? up5.map(m=>{
+    const key=norm(m.home)+"|"+norm(m.away);
+    const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key);
+      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep}:null; }).filter(Boolean);
+    const distinct=[...new Set(per.map(x=>x.pick||"—"))];
+    const head=distinct.length>1?`<span class="pick varia">varía ▾</span>`:`<span class="pick">${esc(distinct[0]||"—")} ▾</span>`;
+    const det=per.map(x=>`<div class="pp"><span class="dot" style="background:${esc(x.color)}"></span>`+
+      `<span class="pp-name">${esc(x.name)}</span><span class="pp-pick">${esc(x.pick||"—")}</span>`+
+      `<span class="pp-ep">EP ${numOr(x.ep,2,"—")}</span></div>`).join("");
+    return `<div class="nx exp"><div class="nx-h"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
+      `${head}<span class="cd" data-cd="${esc(m.kickoff)}">${countdown(m.kickoff)}</span></div>`+
+      `<div class="pp-list">${det}</div></div>`;
+  }).join("") : `<div class="nx muted">Sin partidos próximos.</div>`;
 
   const cards=ps.map(p=>{
     const t=p.totals||{}, pt=p.points||{}, mo=p.money||{}, er=p.expected_return;
@@ -196,8 +203,9 @@ function renderRoot(){
     `<span class="cd muted">${relTime(m.kickoff)}</span></div>`).join("")+`</div></section>` : "";
 
   $("#view").innerHTML = agg+ liveHtml+
-    `<section><h2>Próximos cierres</h2><div class="next">${nextHtml}</div></section>`+
+    `<section><h2>Próximos partidos</h2><p class="cap">Toca un partido para ver tu apuesta y los puntos esperados en cada polla.</p><div class="next">${nextHtml}</div></section>`+
     `<section><h2>Mis pollas</h2><div class="pools">${cards}</div></section>`+ recentHtml;
+  $("#view").querySelectorAll(".nx.exp .nx-h").forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("open")));
   tickCountdowns();
 }
 
