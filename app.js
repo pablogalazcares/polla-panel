@@ -82,6 +82,18 @@ function multiLine(series, color, w=320, h=140){
   const mine=lines.filter(l=>l.mine).map(l=>`<polyline points="${path(l)}" fill="none" stroke="${color}" stroke-width="2.4"/>`).join("");
   return `<svg class="ml" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${others}${mine}</svg>`;
 }
+function trendChart(vals, baseline, color, w=300, h=60){
+  const v=(vals||[]).filter(x=>typeof x==="number");
+  if(v.length<2) return "";
+  const all=v.concat(typeof baseline==="number"?[baseline]:[]);
+  const mn=Math.min(...all), mx=Math.max(...all), rng=(mx-mn)||1, pad=5;
+  const y=val=>(h-pad-(h-2*pad)*(val-mn)/rng).toFixed(1), dx=w/(v.length-1);
+  const pts=v.map((val,i)=>`${(i*dx).toFixed(1)},${y(val)}`).join(" ");
+  const base=typeof baseline==="number"
+    ? `<line x1="0" y1="${y(baseline)}" x2="${w}" y2="${y(baseline)}" stroke="#8b949e" stroke-width="1" stroke-dasharray="4 3"/>` : "";
+  return `<svg class="spk" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${base}`+
+    `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+}
 function standingsList(rows){
   return `<div class="stand">`+rows.map(r=>
     `<div class="st-row${r.mine?" me":""}"><span class="st-pos">${r.pos}º</span>`+
@@ -220,11 +232,12 @@ function renderTab(p){
     const gItems=Object.keys(byG).sort().map(g=>({label:"G"+g, value:byG[g].reduce((a,b)=>a+b,0)/byG[g].length}));
     const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
     const liveStat=pt.provisional_n?`<div class="stat live"><b>${pt.live}</b><span>en vivo (prov.)</span></div>`:"";
+    const vara=(p.baseline&&typeof p.baseline.proj==="number")?`<div class="stat"><b>${signed(t.proj_final-p.baseline.proj,0)}</b><span>vs tu vara</span></div>`:"";
     body.innerHTML = moneyBlock(p)+
       `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color)}`+
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
-      `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${liveStat}${bonusPot}</div></section>`+
-      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${spark(p.history.map(h=>h.proj),300,60,p.color)}</div><p class="cap">Proyección de puntos en el tiempo.</p></section>`:"")+
+      `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${vara}${liveStat}${bonusPot}</div></section>`+
+      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${trendChart(p.history.map(h=>h.proj),p.baseline&&p.baseline.proj,p.color)}</div><p class="cap">Proyección en el tiempo. La línea punteada es <b>tu vara</b> (proyección antes del primer partido${p.baseline?`: ${p.baseline.proj}`:""}).</p></section>`:"")+
       (gItems.length?`<section><h2>Dificultad por grupo</h2><p class="cap">Puntos esperados promedio por partido (menor = más difícil de puntuar).</p>${barChart(gItems,p.color)}</section>`:"");
   } else if(TAB==="apuestas"){
     const hasProv=(p.matches||[]).some(m=>m.provisional);
