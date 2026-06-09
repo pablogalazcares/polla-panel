@@ -78,4 +78,37 @@ tr.played{background:rgba(63,185,80,.06)}
 
 .foot{margin-top:28px; text-align:center; font-size:12px}
 
+/* header con boton volver */
+.ttl{display:flex; align-items:center; gap:8px; min-width:0}
+.btn.ghost{background:transparent; border:none; width:32px; height:36px; font-size:24px; color:var(--dim)}
+.btn.ghost:active{transform:scale(.9)}
+
+/* tarjetas de pollas (raiz del hub) */
+.pools{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px}
+.pool{display:block; text-decoration:none; color:var(--txt); background:var(--card);
+  border:1px solid var(--line); border-left:4px solid var(--pc,#58a6ff); border-radius:12px;
+  padding:12px 14px; transition:border-color .15s, transform .05s}
+.pool:active{transform:scale(.99)}
+.pool:focus-visible{outline:2px solid var(--pc,#58a6ff); outline-offset:2px}
+.pool-h{display:flex; align-items:center; justify-content:space-between; gap:8px}
+.pool-name{font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pool-kpis{display:flex; gap:16px; margin:10px 0 8px}
+.pool-kpis div{display:flex; flex-direction:column}
+.pool-kpis b{font-size:22px; line-height:1.1}
+.pool-kpis span{color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.03em}
+.pool-f{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px}
+.pool-f .cd{color:var(--warn); white-space:nowrap}
+.badge{background:rgba(88,166,255,.14); color:var(--accent); border-radius:999px;
+  padding:2px 9px; font-size:12px; font-weight:600; white-space:nowrap}
+.badge.ghost{background:transparent; border:1px solid var(--line); color:var(--dim); font-weight:500}
+.dot{width:8px; height:8px; border-radius:50%; display:inline-block; flex:0 0 auto; margin-right:2px}
+
+/* bonus (detalle) */
+.bonus{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px}
+.bo{display:flex; flex-direction:column; gap:2px; background:var(--card); border:1px solid var(--line);
+  border-radius:10px; padding:9px 12px}
+.bo .bl{color:var(--dim); font-size:11.5px; text-transform:uppercase; letter-spacing:.03em}
+.bo .bp{font-weight:700}
+.bo .bpts{color:var(--pos); font-size:12px}
+
 @media (prefers-reduced-motion: reduce){ *{transition:none !important} .btn:active{transform:none} }

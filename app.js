@@ -19,13 +19,12 @@ function teamCell(home, away){
   return `<span class="full">${full}</span><span class="abbr">${ab}</span>`;
 }
 
-/* fase: 'Grupo A · Jornada 3' -> 'GA J3'; 'Octavos' -> '8vos' */
 const KO = {dieciseisavos:"16vos", octavos:"8vos", cuartos:"4tos", semifinal:"Semi", final:"Final", eliminatoria:"Elim"};
 const KO_ORDER = ["16vos","8vos","4tos","Semi","Final"];
 function phaseShort(f){
   if(!f) return "";
   const low = norm(f);
-  if(KO[low]) return KO[low];
+  for(const k in KO){ if(low.includes(k)) return KO[k]; }
   const mg = low.match(/grupo\s+([a-z0-9]+)/), mj = low.match(/jornada\s+(\d+)/);
   if(mg) return "G"+mg[1].toUpperCase()+(mj?" J"+mj[1]:"");
   return f;
@@ -81,79 +80,151 @@ async function loadData(force){
   return {d:null, src:"none"};
 }
 
-/* ---------- render ---------- */
-function renderHero(d){
-  const t = d.totals||{};
-  const cards = [
+/* normaliza datos viejos (schema 1, una sola polla) a pools[] */
+function pools(d){
+  if(!d) return [];
+  if(Array.isArray(d.pools)) return d.pools;
+  return [{id:"mundial", name:d.tournament||"Mundial 2026", platform:"golpredictor",
+           color:"#58a6ff", scoring_label:"", standing:d.ranking?null:null, totals:d.totals||{},
+           bonuses:[], matches:d.matches||[], changes:d.changes||[]}];
+}
+function poolById(d, id){ return pools(d).find(p=>p.id===id); }
+function nextClose(p){
+  const fut = (p.matches||[]).filter(m=>!m.actual_result && parseISO(m.kickoff)>Date.now());
+  if(!fut.length) return null;
+  return fut.reduce((a,b)=>parseISO(a.kickoff)<parseISO(b.kickoff)?a:b).kickoff;
+}
+
+/* ---------- estado + router ---------- */
+let DATA = null;
+
+function route(){
+  const m = (location.hash||"").match(/^#\/p\/(.+)$/);
+  const pool = m ? poolById(DATA, decodeURIComponent(m[1])) : null;
+  if(pool) renderDetail(pool); else renderRoot();
+}
+
+/* ---------- render: raiz (hub) ---------- */
+function renderRoot(){
+  $("#title").textContent = "Mis Pollas";
+  $("#back").hidden = true;
+  const ps = pools(DATA);
+
+  // proximos cierres unificados (todas las pollas), siguientes 48 h
+  const now = Date.now(), H48 = 48*3600*1000;
+  let up = [];
+  ps.forEach(p => (p.matches||[]).forEach(m=>{
+    const t = parseISO(m.kickoff);
+    if(!m.actual_result && t && t-now>0 && t-now<=H48) up.push({p, m});
+  }));
+  up.sort((a,b)=>parseISO(a.m.kickoff)-parseISO(b.m.kickoff));
+
+  const nextHtml = up.length ? up.slice(0,10).map(({p,m})=>
+    `<div class="nx"><span class="dot" style="background:${esc(p.color)}"></span>`+
+    `<span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
+    `<span class="pick">${esc(m.user_pick||"—")}</span>`+
+    `<span class="cd" data-cd="${esc(m.kickoff)}">${countdown(m.kickoff)}</span></div>`
+  ).join("") : `<div class="nx muted">Sin cierres en las próximas 48 h.</div>`;
+
+  const cards = ps.map(p=>{
+    const t = p.totals||{};
+    const nc = nextClose(p);
+    const stand = p.standing ? `<span class="badge">${p.standing.position}º de ${p.standing.total_players}</span>` : "";
+    const bonus = (p.bonuses&&p.bonuses.length) ? `<span class="badge ghost">${p.bonuses.length} bonus</span>` : "";
+    return `<a class="pool" href="#/p/${encodeURIComponent(p.id)}" style="--pc:${esc(p.color)}">`+
+      `<div class="pool-h"><span class="pool-name">${esc(p.name)}</span>${stand}</div>`+
+      `<div class="pool-kpis">`+
+        `<div><b>${numOr(t.pts_real,0,"0")}</b><span>pts</span></div>`+
+        `<div><b>${numOr(t.proj_final,0,"—")}</b><span>proyección</span></div>`+
+        `<div><b>${signed(typeof t.diff==="number"?t.diff:0,1)}</b><span>Δ esperado</span></div>`+
+      `</div>`+
+      `<div class="pool-f"><span class="muted">${t.n_played||0}/${t.n_total||0} jugados</span>`+
+        `${bonus}<span class="cd" data-cd="${esc(nc||"")}">${nc?("próx. "+countdown(nc)):"sin cierres"}</span></div>`+
+    `</a>`;
+  }).join("");
+
+  $("#view").innerHTML =
+    `<section aria-label="Próximos cierres"><h2>Próximos cierres</h2><div class="next">${nextHtml}</div></section>`+
+    `<section aria-label="Pollas"><h2>Mis pollas</h2><div class="pools">${cards}</div></section>`;
+  tickCountdowns();
+}
+
+/* ---------- render: detalle de una polla ---------- */
+let betsRows = [], sortState = {i:null, dir:1};
+function renderDetail(p){
+  $("#title").textContent = p.name;
+  $("#back").hidden = false;
+  const t = p.totals||{};
+
+  const kpis = [
     ["Mis puntos", numOr(t.pts_real,0,"0"), `${t.n_played||0}/${t.n_total||0} jugados`],
-    ["Proyección al cierre", numOr(t.proj_final,0,"—"), "reales + esperados"],
+    ["Proyección", numOr(t.proj_final,0,"—"), "reales + esperados"],
     ["Δ vs esperado", signed(typeof t.diff==="number"?t.diff:0,1), "en lo ya jugado"],
   ];
-  if(d.ranking && d.ranking.length){
-    const me = d.ranking.findIndex(r=>r.me) ;
-    if(me>=0) cards.push(["Mi posición", `${me+1}º`, `de ${d.ranking.length}`]);
-  }
-  $("#hero").innerHTML = cards.map(([l,v,s])=>
-    `<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`
-  ).join("");
-}
+  if(p.standing) kpis.push(["Mi posición", `${p.standing.position}º`, `de ${p.standing.total_players}`]);
+  const heroHtml = kpis.map(([l,v,s])=>
+    `<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("");
 
-function renderNext(d){
-  const now = Date.now(), H48 = 48*3600*1000;
-  const up = (d.matches||[]).filter(m=>{
-    if(m.actual_result) return false;
-    const t = parseISO(m.kickoff); return t && t-now>0 && t-now<=H48;
-  }).sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
-  const wrap = $("#next-wrap"); wrap.hidden = false;
-  if(!up.length){ $("#next").innerHTML = `<div class="nx muted">Sin cierres en las próximas 48 h.</div>`; return; }
-  $("#next").innerHTML = up.map(m=>
+  const bonusHtml = (p.bonuses&&p.bonuses.length) ?
+    `<section><h2>Bonus</h2><div class="bonus">`+
+    p.bonuses.map(b=>`<div class="bo"><span class="bl">${esc(b.label)}</span>`+
+      `<span class="bp">${flag(b.pick)} ${esc(b.pick||"—")}</span>`+
+      `<span class="bpts">${b.points!=null?("+"+b.points):""}</span></div>`).join("")+
+    `</div></section>` : "";
+
+  const now=Date.now(), H48=48*3600*1000;
+  const up=(p.matches||[]).filter(m=>!m.actual_result && (parseISO(m.kickoff)-now>0) && (parseISO(m.kickoff)-now<=H48))
+    .sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
+  const nextHtml = up.length ? up.map(m=>
     `<div class="nx"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
     `<span class="pick">${esc(m.user_pick||"—")}</span><span class="cd" data-cd="${esc(m.kickoff)}">${countdown(m.kickoff)}</span></div>`
-  ).join("");
+  ).join("") : `<div class="nx muted">Sin cierres en las próximas 48 h.</div>`;
+
+  $("#view").innerHTML =
+    `<section class="kpis" aria-label="Resumen">${heroHtml}</section>`+
+    `<p class="cap">Puntaje: ${esc(p.scoring_label||"")}</p>`+
+    bonusHtml+
+    `<section><h2>Próximos cierres</h2><div class="next">${nextHtml}</div></section>`+
+    `<section><h2>Mis apuestas vs puntos reales</h2><p class="cap">Toca un encabezado para ordenar.</p>`+
+    `<div class="tbl"><table id="bets" class="sortable"></table></div></section>`+
+    (p.changes&&p.changes.length ? `<section><h2>Cambios del modelo</h2><div id="changes" class="changes"></div></section>` : "");
+
+  buildBets(p);
+  if(p.changes&&p.changes.length) renderChanges(p);
+  tickCountdowns();
 }
 
-let betsRows = [];
-function renderBets(d){
-  const wrap = $("#bets-wrap"); wrap.hidden = false;
-  const cols = [
-    ["Fase","text"],["Partido","text"],["Mi marc.","text"],["Real","text"],
-    ["Pts esp.","num"],["Pts real","num"],["Δ","num"],["Cierre","text"]
-  ];
-  betsRows = (d.matches||[]).map(m=>{
+function buildBets(p){
+  const cols = [["Fase","text"],["Partido","text"],["Mi marc.","text"],["Real","text"],
+    ["Pts esp.","num"],["Pts real","num"],["Δ","num"],["Cierre","text"]];
+  betsRows = (p.matches||[]).map(m=>{
     const played = !!m.actual_result;
     const ep = typeof m.ep==="number" ? m.ep : null;
     const pe = (played && typeof m.points_earned==="number") ? m.points_earned : null;
     const diff = (pe!=null && ep!=null) ? pe-ep : null;
-    return {
-      played,
-      cells: [
-        {h:`<span class="ph">${esc(phaseShort(m.fase))}</span>`, s:phaseKey(m.fase), cls:"ph"},
-        {h:teamCell(m.home,m.away), s:norm(m.home), cls:"match"},
-        {h:esc(m.user_pick||"—"), s:m.user_pick||"", cls:"c b"},
-        {h:esc(m.actual_result||"·"), s:m.actual_result||"", cls:"c"},
-        {h:numOr(ep,2,"—"), s:ep==null?-1:ep, cls:"c"},
-        {h:played?numOr(pe,0,"·"):"·", s:pe==null?-1:pe, cls:"c b"},
-        {h:diff!=null?signed(diff,1):"·", s:diff==null?-999:diff, cls:"c"},
-        {h:`<span class="ko">${esc(koLabel(m.kickoff))}</span>`, s:m.kickoff||"", cls:"ko"},
-      ]
-    };
+    return {played, cells:[
+      {h:`<span class="ph">${esc(phaseShort(m.fase))}</span>`, s:phaseKey(m.fase), cls:"ph"},
+      {h:teamCell(m.home,m.away), s:norm(m.home), cls:"match"},
+      {h:esc(m.user_pick||"—"), s:m.user_pick||"", cls:"c b"},
+      {h:esc(m.actual_result||"·"), s:m.actual_result||"", cls:"c"},
+      {h:numOr(ep,2,"—"), s:ep==null?-1:ep, cls:"c"},
+      {h:played?numOr(pe,0,"·"):"·", s:pe==null?-1:pe, cls:"c b"},
+      {h:diff!=null?signed(diff,1):"·", s:diff==null?-999:diff, cls:"c"},
+      {h:`<span class="ko">${esc(koLabel(m.kickoff))}</span>`, s:m.kickoff||"", cls:"ko"},
+    ]};
   });
   const thead = `<thead><tr>${cols.map(([l,t],i)=>`<th data-i="${i}" data-type="${t}" class="${i>=4&&i<=6?'c':''}">${esc(l)}</th>`).join("")}</tr></thead>`;
   const table = $("#bets");
   table.innerHTML = thead + `<tbody></tbody>`;
-  table.querySelectorAll("thead th").forEach(th=>{
-    th.addEventListener("click", ()=>sortBets(parseInt(th.dataset.i,10), th));
-  });
+  table.querySelectorAll("thead th").forEach(th=>th.addEventListener("click", ()=>sortBets(parseInt(th.dataset.i,10), th)));
+  sortState = {i:null, dir:1};
   paintBets();
 }
 function paintBets(){
-  const tb = $("#bets tbody");
-  tb.innerHTML = betsRows.map(r=>
-    `<tr class="${r.played?"played":""}">`+
-    r.cells.map(c=>`<td class="${c.cls}">${c.h}</td>`).join("")+`</tr>`
-  ).join("");
+  const tb = $("#bets tbody"); if(!tb) return;
+  tb.innerHTML = betsRows.map(r=>`<tr class="${r.played?"played":""}">`+
+    r.cells.map(c=>`<td class="${c.cls}">${c.h}</td>`).join("")+`</tr>`).join("");
 }
-let sortState = {i:null, dir:1};
 function sortBets(i, th){
   const dir = (sortState.i===i && sortState.dir===1) ? -1 : 1;
   sortState = {i, dir};
@@ -165,15 +236,14 @@ function sortBets(i, th){
     if(num){ x=parseFloat(x); y=parseFloat(y); } else { x=String(x).toLowerCase(); y=String(y).toLowerCase(); }
     return x<y?-dir:(x>y?dir:0);
   });
-  try{ localStorage.setItem("polla:sort", JSON.stringify(sortState)); }catch(e){}
   paintBets();
 }
 
-function renderChanges(d){
-  const wrap = $("#changes-wrap"); wrap.hidden = false;
-  const cs = (d.changes||[]).slice(0, 60);
-  if(!cs.length){ $("#changes").innerHTML = `<div class="cg muted">Sin cambios registrados.</div>`; return; }
-  $("#changes").innerHTML = cs.map(c=>{
+function renderChanges(p){
+  const cs = (p.changes||[]).slice(0, 60);
+  const el = $("#changes"); if(!el) return;
+  if(!cs.length){ el.innerHTML = `<div class="cg muted">Sin cambios registrados.</div>`; return; }
+  el.innerHTML = cs.map(c=>{
     const ep = (typeof c.ep_from==="number" && typeof c.ep_to==="number")
       ? `<span class="ep">${c.ep_from.toFixed(2)} → ${c.ep_to.toFixed(2)} pts</span>`
       : (typeof c.ep_to==="number" ? `<span class="ep">${c.ep_to.toFixed(2)} pts</span>` : "");
@@ -183,11 +253,15 @@ function renderChanges(d){
       `<div class="reason">${esc(c.reason||"")}</div>`+
       `<div class="when">${esc(relTime(c.ts))}</div></div>`;
   }).join("");
-  $("#changes").querySelectorAll(".cg").forEach(el=>el.addEventListener("click", ()=>el.classList.toggle("open")));
+  el.querySelectorAll(".cg").forEach(d=>d.addEventListener("click", ()=>d.classList.toggle("open")));
 }
 
 function tickCountdowns(){
-  document.querySelectorAll("[data-cd]").forEach(el=>{ el.textContent = countdown(el.dataset.cd); });
+  document.querySelectorAll("[data-cd]").forEach(el=>{
+    const v = el.dataset.cd; if(!v) return;
+    const pre = el.textContent.startsWith("próx.") ? "próx. " : "";
+    el.textContent = pre + countdown(v);
+  });
 }
 
 function setStatus(msg, isErr){
@@ -197,27 +271,24 @@ function setStatus(msg, isErr){
 }
 
 async function refresh(force){
-  $("#app").setAttribute("aria-busy","true");
+  $("#view").setAttribute("aria-busy","true");
   const {d, src} = await loadData(force);
   if(!d){
     setStatus("No pude cargar los datos. Si abres el archivo local directamente, sírvelo con: python3 -m http.server", true);
     $("#updated").textContent = "sin datos";
-    $("#app").setAttribute("aria-busy","false");
+    $("#view").setAttribute("aria-busy","false");
     return;
   }
+  DATA = d;
   setStatus(src==="cache" ? "Mostrando última copia guardada (sin conexión)." : "", false);
   $("#updated").textContent = "actualizado " + relTime(d.updated_at);
-  renderHero(d); renderNext(d); renderBets(d); renderChanges(d);
-  // restaurar orden guardado
-  try{
-    const ss = JSON.parse(localStorage.getItem("polla:sort")||"null");
-    if(ss && ss.i!=null){ const th=document.querySelector(`#bets thead th[data-i="${ss.i}"]`); if(th){ sortState={i:ss.i,dir:-ss.dir}; sortBets(ss.i, th); } }
-  }catch(e){}
-  tickCountdowns();
-  $("#app").setAttribute("aria-busy","false");
+  route();
+  $("#view").setAttribute("aria-busy","false");
 }
 
 $("#refresh").addEventListener("click", ()=>refresh(true));
+$("#back").addEventListener("click", ()=>{ if(history.length>1) history.back(); else location.hash = "#/"; });
+window.addEventListener("hashchange", ()=>{ if(DATA) route(); });
 setInterval(tickCountdowns, 60000);
 refresh(false);
 

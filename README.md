@@ -1,21 +1,33 @@
-# La Polla — panel personal (P1)
+# Mis Pollas — panel personal (P1)
 
 Front estático y privado para monitorear desde el celular el estado de **mis** apuestas en
-la polla del Mundial 2026. No es público ni de marketing: solo lee un JSON generado por el
-modelo. Es uno de los tres productos del monorepo (P1 polla · P2 research · P3 mundial).
+TODAS las pollas en las que participo (hub multi-polla). No es público ni de marketing: solo
+lee un JSON generado por el modelo. Es uno de los tres productos del monorepo
+(P1 polla · P2 research · P3 mundial).
 
 ## Qué muestra
-- **Hero**: mis puntos reales, proyección al cierre, Δ vs esperado, "actualizado hace…".
-- **Próximos cierres**: partidos que arrancan en <48 h, con mi pick y cuenta regresiva.
-- **Mis apuestas vs puntos reales**: tabla ordenable (en celular usa código de 3 letras).
-- **Cambios del modelo**: qué ajustó y por qué, con el salto de puntos esperados (toca para expandir).
+- **Raíz (hub)**: una tarjeta por polla (puntos, proyección, Δ, mi posición, próximo cierre,
+  bonus) + **próximos cierres unificados** de todas las pollas, ordenados por urgencia.
+- **Detalle de cada polla** (al tocar la tarjeta):
+  - **Hero**: mis puntos, proyección, Δ vs esperado, mi posición (si la plataforma la expone).
+  - **Bonus**: campeón/subcampeón/goleador/mejor jugador (cuando la polla los tiene).
+  - **Próximos cierres** de esa polla, con mi pick y cuenta regresiva.
+  - **Mis apuestas vs puntos reales**: tabla ordenable (en celular usa código de 3 letras).
+  - **Cambios del modelo** (cuando aplica), con el salto de puntos esperados.
 
 ## De dónde salen los datos
-`apps/polla/data/polla.json` lo genera el modelo:
+`apps/polla/data/polla.json` (schema 2, `{schema, updated_at, pools[]}`) lo genera el modelo:
 
 ```bash
-python3 export/build_data.py     # lee state/state.json + state/changes.jsonl
+python3 export/build_data.py
 ```
+Fuentes por polla:
+- **mundial** (golpredictor): `state/state.json` + `state/changes.jsonl`.
+- **pollaya** (game.pollaya.com): `state/pollaya_state.json`, snapshot que escribe
+  `apps/pollaya/run.py` (decisión: snapshot en repo, no fetch en build-time). Por privacidad
+  el snapshot solo lleva **mi** posición (sin nombres de otros participantes).
+
+Agregar una polla nueva = sumar una fuente en `build_data.py`; el front itera `pools[]`.
 
 Escribe también `data/polla.js` (un `window.__POLLA__ = …`) como respaldo para abrir el
 panel con doble clic en `file://`, donde el navegador suele bloquear `fetch()` de archivos

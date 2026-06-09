@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>La Polla</title>
+<title>Mis Pollas</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -16,31 +16,19 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <div>
-      <h1>La Polla</h1>
-      <div class="muted" id="updated">cargando…</div>
+    <div class="ttl">
+      <button id="back" class="btn ghost" hidden aria-label="Volver">‹</button>
+      <div>
+        <h1 id="title">Mis Pollas</h1>
+        <div class="muted" id="updated">cargando…</div>
+      </div>
     </div>
     <button id="refresh" class="btn" aria-label="Actualizar">↻</button>
   </header>
 
   <div id="status" class="status" hidden></div>
 
-  <main id="app" aria-busy="true">
-    <section id="hero" class="kpis" aria-label="Resumen"></section>
-    <section id="next-wrap" hidden>
-      <h2>Próximos cierres</h2>
-      <div id="next" class="next"></div>
-    </section>
-    <section id="bets-wrap" hidden>
-      <h2>Mis apuestas vs puntos reales</h2>
-      <p class="cap">Toca un encabezado para ordenar.</p>
-      <div class="tbl"><table id="bets" class="sortable"></table></div>
-    </section>
-    <section id="changes-wrap" hidden>
-      <h2>Cambios del modelo</h2>
-      <div id="changes" class="changes"></div>
-    </section>
-  </main>
+  <main id="view" aria-busy="true"></main>
 
   <footer class="foot muted">Panel personal · datos del modelo, no público.</footer>
 </div>
