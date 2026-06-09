@@ -158,4 +158,16 @@ tr.played{background:rgba(63,185,80,.06)}
 .tab.on{color:var(--txt); border-color:var(--accent); background:rgba(88,166,255,.12)}
 .tab:active{transform:scale(.97)}
 
+/* tabla de posiciones (anónima) */
+.ml{display:block; background:var(--card); border-radius:8px}
+.stand{display:flex; flex-direction:column; gap:4px}
+.st-row{display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line);
+  border-radius:8px; padding:7px 12px; font-size:13.5px}
+.st-row.me{border-color:var(--accent); background:rgba(88,166,255,.10)}
+.st-row .st-pos{width:30px; color:var(--dim)}
+.st-row.me .st-pos{color:var(--accent); font-weight:700}
+.st-row .st-lbl{flex:1}
+.st-row.me .st-lbl{font-weight:700}
+.st-row .st-pts{font-weight:700; font-variant-numeric:tabular-nums}
+
 @media (prefers-reduced-motion: reduce){ *{transition:none !important} .btn:active{transform:none} }

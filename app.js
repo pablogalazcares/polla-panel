@@ -71,6 +71,22 @@ function progress(expected, max, captured, color){
     `<div class="prog-lbl"><span>capturado ${(captured||0).toFixed(0)}</span>`+
     `<span>esperado ${expected.toFixed(0)}</span><span>máx ${max}</span></div></div>`;
 }
+function multiLine(series, color, w=320, h=140){
+  const ts=(series&&series.ts)||[], lines=(series&&series.lines)||[];
+  if(ts.length<2) return "";   // sin evolución aún (1 sola toma)
+  let mx=0; lines.forEach(l=>l.pts.forEach(v=>{ if(typeof v==="number"&&v>mx) mx=v; }));
+  mx=mx||1; const dx=w/(ts.length-1), pad=4;
+  const path=l=>l.pts.map((v,i)=> (typeof v!=="number")?null:`${(i*dx).toFixed(1)},${(h-pad-(h-2*pad)*v/mx).toFixed(1)}`)
+    .filter(Boolean).join(" ");
+  const others=lines.filter(l=>!l.mine).map(l=>`<polyline points="${path(l)}" fill="none" stroke="#30363d" stroke-width="1.2"/>`).join("");
+  const mine=lines.filter(l=>l.mine).map(l=>`<polyline points="${path(l)}" fill="none" stroke="${color}" stroke-width="2.4"/>`).join("");
+  return `<svg class="ml" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${others}${mine}</svg>`;
+}
+function standingsList(rows){
+  return `<div class="stand">`+rows.map(r=>
+    `<div class="st-row${r.mine?" me":""}"><span class="st-pos">${r.pos}º</span>`+
+    `<span class="st-lbl">${esc(r.label)}</span><span class="st-pts">${r.pts}</span></div>`).join("")+`</div>`;
+}
 function barChart(items, color){   // items: [{label, value}] -> barras horizontales (0..max)
   const mx=Math.max(...items.map(i=>i.value), 0.001);
   return `<div class="bars">`+items.map(i=>
@@ -125,7 +141,9 @@ function renderRoot(){
 
   const cards=ps.map(p=>{
     const t=p.totals||{}, pt=p.points||{}, mo=p.money||{}, er=p.expected_return;
-    const stand=p.standing?`<span class="badge">${p.standing.position}º/${p.standing.total_players}</span>`:"";
+    const players=(p.standing&&p.standing.total_players)||mo.players;
+    const stand=p.standing?`<span class="badge">${p.standing.position}º/${p.standing.total_players}</span>`
+      :(players?`<span class="badge ghost">${players} jug.</span>`:"");
     const sp=spark((p.history||[]).map(h=>h.proj), 80, 22, p.color);
     const pct=pt.expected_pct!=null?`${pt.expected_pct}%`:"—";
     return `<a class="pool" href="#/p/${encodeURIComponent(p.id)}" style="--pc:${esc(p.color)}">`+
@@ -161,7 +179,10 @@ function renderDetail(p){
   if(p.standing) kpis.push(["Posición", `${p.standing.position}º`, `de ${p.standing.total_players}`]);
   const heroHtml=kpis.map(([l,v,s])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("");
 
-  const tabs=["resumen","apuestas",...(p.bonuses&&p.bonuses.length?["bonus"]:[]),...(p.changes&&p.changes.length?["cambios"]:[])];
+  const tabs=["resumen","apuestas",
+    ...(p.standings&&p.standings.length?["posiciones"]:[]),
+    ...(p.bonuses&&p.bonuses.length?["bonus"]:[]),
+    ...(p.changes&&p.changes.length?["cambios"]:[])];
   const tabBar=`<div class="tabs">`+tabs.map(tb=>
     `<button class="tab${tb===TAB?" on":""}" data-tab="${tb}">${tb[0].toUpperCase()+tb.slice(1)}</button>`).join("")+`</div>`;
 
@@ -207,6 +228,13 @@ function renderTab(p){
   } else if(TAB==="apuestas"){
     body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
     buildBets(p);
+  } else if(TAB==="posiciones"){
+    const ml=multiLine(p.leaderboard_series, p.color);
+    body.innerHTML =
+      (ml?`<section><h2>Evolución de puntos</h2><div class="bigspark">${ml}</div>`+
+          `<p class="cap">Cada línea es un participante (anónimo); la tuya resaltada en color.</p></section>`
+         :`<p class="cap">La evolución aparecerá cuando se jueguen partidos (hoy todos en 0).</p>`)+
+      `<section><h2>Tabla de posiciones</h2>${standingsList(p.standings)}</section>`;
   } else if(TAB==="bonus"){
     body.innerHTML=`<div class="bonus">`+(p.bonuses||[]).map(b=>
       `<div class="bo"><span class="bl">${esc(b.label)}</span><span class="bp">${flag(b.pick)} ${esc(b.pick||"—")}</span>`+
