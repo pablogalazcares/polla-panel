@@ -1,5 +1,5 @@
 /* Service worker minimo: shell offline (cache-first) y datos frescos (network-first). */
-const C = "polla-v9";
+const C = "polla-v10";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", (e) => {

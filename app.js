@@ -6,7 +6,7 @@ const TEAM = {"mexico": {"flag": "🇲🇽", "tri": "MEX"}, "sudafrica": {"flag"
 const MES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const $ = (s, r=document) => r.querySelector(s);
 
-function norm(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g," ").trim(); }
+function norm(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim(); }
 function esc(s){ const d=document.createElement("div"); d.textContent=(s==null?"":String(s)); return d.innerHTML; }
 function tinfo(name){ return TEAM[norm(name)] || {flag:"", tri:(name||"?").slice(0,3).toUpperCase()}; }
 function flag(name){ return tinfo(name).flag; }
@@ -63,13 +63,24 @@ function spark(vals, w=88, h=24, color="#58a6ff"){
   return `<svg class="spk" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`+
     `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
 }
-function progress(expected, max, captured, color){
+function progress(expected, max, captured, color, baseline){
   if(!max) return "";
   const pe=Math.min(100,100*expected/max), pc=Math.min(100,100*(captured||0)/max);
+  const mark=typeof baseline==="number"?`<span class="mark" title="tu vara" style="left:${Math.min(100,100*baseline/max).toFixed(1)}%"></span>`:"";
   return `<div class="prog"><div class="prog-bar"><span class="pe" style="width:${pe}%;background:${color}"></span>`+
-    `<span class="pc" style="width:${pc}%"></span></div>`+
-    `<div class="prog-lbl"><span>capturado ${(captured||0).toFixed(0)}</span>`+
-    `<span>esperado ${expected.toFixed(0)}</span><span>máx ${max}</span></div></div>`;
+    `<span class="pc" style="width:${pc}%"></span>${mark}</div>`+
+    `<div class="prog-lbl"><span>capturado ${(captured||0).toFixed(0)}</span><span>esperado ${expected.toFixed(0)}</span>`+
+    `${typeof baseline==="number"?`<span class="vara">vara ${baseline.toFixed(0)}</span>`:""}<span>máx ${max}</span></div></div>`;
+}
+function groupBars(groups, color){
+  return `<div class="gbars">`+(groups||[]).map(g=>{
+    const pe=Math.min(100,100*g.expected/g.max), pc=Math.min(100,100*g.real/g.max);
+    const mark=typeof g.baseline==="number"?`<span class="mark" style="left:${Math.min(100,100*g.baseline/g.max).toFixed(1)}%"></span>`:"";
+    return `<div class="gbar"><div class="gbar-h"><span class="gl">Grupo ${esc(g.group)}</span>`+
+      `<span class="muted">real ${g.real} · esp ${g.expected}${g.baseline!=null?` · vara ${g.baseline}`:""} · máx ${g.max}</span></div>`+
+      `<div class="prog-bar"><span class="pe" style="width:${pe}%;background:${esc(color)}"></span>`+
+      `<span class="pc" style="width:${pc}%"></span>${mark}</div></div>`;
+  }).join("")+`</div>`;
 }
 function multiLine(series, color, w=320, h=140){
   const ts=(series&&series.ts)||[], lines=(series&&series.lines)||[];
@@ -257,18 +268,16 @@ function moneyBlock(p){
 function renderTab(p){
   const body=$("#tabbody"); const t=p.totals||{}, pt=p.points||{};
   if(TAB==="resumen"){
-    // dificultad por grupo (EP promedio; menor = más difícil)
-    const byG={}; (p.matches||[]).forEach(m=>{ const g=groupOf(m.fase); if(g&&typeof m.ep==="number"){ (byG[g]=byG[g]||[]).push(m.ep); }});
-    const gItems=Object.keys(byG).sort().map(g=>({label:"G"+g, value:byG[g].reduce((a,b)=>a+b,0)/byG[g].length}));
+    const base=p.baseline&&typeof p.baseline.proj==="number"?p.baseline.proj:null;
     const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
     const liveStat=pt.provisional_n?`<div class="stat live"><b>${pt.live}</b><span>en vivo (prov.)</span></div>`:"";
-    const vara=(p.baseline&&typeof p.baseline.proj==="number")?`<div class="stat"><b>${signed(t.proj_final-p.baseline.proj,0)}</b><span>vs tu vara</span></div>`:"";
+    const vara=(base!=null)?`<div class="stat"><b>${signed(t.proj_final-base,0)}</b><span>vs tu vara</span></div>`:"";
     body.innerHTML = moneyBlock(p)+
-      `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color)}`+
+      `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color, base)}`+
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
       `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${vara}${liveStat}${bonusPot}</div></section>`+
-      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${trendChart(p.history.map(h=>h.proj),p.baseline&&p.baseline.proj,p.color)}</div><p class="cap">Proyección en el tiempo. La línea punteada es <b>tu vara</b> (proyección antes del primer partido${p.baseline?`: ${p.baseline.proj}`:""}).</p></section>`:"")+
-      (gItems.length?`<section><h2>Dificultad por grupo</h2><p class="cap">Puntos esperados promedio por partido (menor = más difícil de puntuar).</p>${barChart(gItems,p.color)}</section>`:"");
+      ((p.groups&&p.groups.length)?`<section><h2>Por grupo</h2><p class="cap">Por grupo: <b>real</b> acumulado · <b>esperado</b> actual · marca = <b>tu vara</b> (esperado pre-torneo) · barra completa = <b>máx</b> alcanzable.</p>${groupBars(p.groups,p.color)}</section>`:"")+
+      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${trendChart(p.history.map(h=>h.proj),null,p.color)}</div><p class="cap">Proyección de puntos en el tiempo.</p></section>`:"");
   } else if(TAB==="apuestas"){
     const hasProv=(p.matches||[]).some(m=>m.provisional);
     body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.${hasProv?' <span class="prov">*</span> resultado provisorio (ESPN, antes de que la polla lo confirme).':''}</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
