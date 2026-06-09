@@ -1,5 +1,6 @@
-/* Service worker minimo: shell offline (cache-first) y datos frescos (network-first). */
-const C = "polla-v10";
+/* Service worker: network-first para TODO (siempre trae lo último online; cae a caché solo
+   sin conexión). Evita el problema de "no veo mis cambios" del cache-first. */
+const C = "polla-v11";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -14,16 +15,13 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
-  if (url.pathname.endsWith("/data/polla.json")) {
-    // datos: red primero, cae a cache si no hay conexion
-    e.respondWith(
-      fetch(e.request).then((r) => {
-        const cp = r.clone(); caches.open(C).then((c) => c.put(e.request, cp)); return r;
-      }).catch(() => caches.match(e.request))
-    );
-    return;
-  }
-  // shell: cache primero
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+  if (e.request.method !== "GET") return;
+  // network-first: trae fresco y actualiza caché; si no hay red, sirve la última copia
+  e.respondWith(
+    fetch(e.request).then((r) => {
+      const cp = r.clone();
+      caches.open(C).then((c) => c.put(e.request, cp));
+      return r;
+    }).catch(() => caches.match(e.request))
+  );
 });
