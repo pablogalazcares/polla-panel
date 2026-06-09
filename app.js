@@ -11,12 +11,12 @@ function esc(s){ const d=document.createElement("div"); d.textContent=(s==null?"
 function tinfo(name){ return TEAM[norm(name)] || {flag:"", tri:(name||"?").slice(0,3).toUpperCase()}; }
 function flag(name){ return tinfo(name).flag; }
 function tri(name){ return tinfo(name).tri; }
+function clp(n){ return n==null ? "—" : "$"+Math.round(n).toLocaleString("es-CL"); }
 
 function teamCell(home, away){
   const fh=flag(home), fa=flag(away);
-  const full = `${fh} ${esc(home)} – ${esc(away)} ${fa}`.trim();
-  const ab = `${fh} ${tri(home)} – ${tri(away)} ${fa}`.trim();
-  return `<span class="full">${full}</span><span class="abbr">${ab}</span>`;
+  return `<span class="full">${fh} ${esc(home)} – ${esc(away)} ${fa}</span>`+
+         `<span class="abbr">${fh} ${tri(home)} – ${tri(away)} ${fa}</span>`;
 }
 
 const KO = {dieciseisavos:"16vos", octavos:"8vos", cuartos:"4tos", semifinal:"Semi", final:"Final", eliminatoria:"Elim"};
@@ -29,6 +29,7 @@ function phaseShort(f){
   if(mg) return "G"+mg[1].toUpperCase()+(mj?" J"+mj[1]:"");
   return f;
 }
+function groupOf(f){ const m=norm(f||"").match(/grupo\s+([a-z0-9]+)/); return m?m[1].toUpperCase():null; }
 function phaseKey(f){
   const low = norm(f||"");
   const mg = low.match(/grupo\s+([a-z0-9]+)/), mj = low.match(/jornada\s+(\d+)/);
@@ -43,82 +44,78 @@ function koLabel(iso){
   if(!m) return (iso||"").slice(0,16);
   return `${+m[3]} ${MES[+m[2]-1]} ${m[4]}:${m[5]}`;
 }
-function relTime(iso){
-  const t = parseISO(iso); if(!t) return "";
-  let s = Math.max(0, (Date.now()-t)/1000);
-  if(s<90) return "hace instantes";
-  if(s<3600) return "hace "+Math.round(s/60)+" min";
-  if(s<86400) return "hace "+Math.round(s/3600)+" h";
-  return "hace "+Math.round(s/86400)+" d";
-}
-function countdown(iso){
-  const t = parseISO(iso); if(!t) return "";
-  let s = (t-Date.now())/1000;
-  if(s<=0) return "en juego";
-  const d=Math.floor(s/86400); s-=d*86400;
-  const h=Math.floor(s/3600); const m=Math.floor((s-h*3600)/60);
-  if(d>0) return `en ${d}d ${h}h`;
-  if(h>0) return `en ${h}h ${m}m`;
-  return `en ${m}m`;
-}
-function signed(x, dec=1){
-  if(typeof x!=="number") return "·";
-  const c = x>0?"pos":(x<0?"neg":"zero");
-  return `<span class="${c}">${x>=0?"+":""}${x.toFixed(dec)}</span>`;
-}
+function relTime(iso){ const t=parseISO(iso); if(!t) return ""; let s=Math.max(0,(Date.now()-t)/1000);
+  if(s<90) return "hace instantes"; if(s<3600) return "hace "+Math.round(s/60)+" min";
+  if(s<86400) return "hace "+Math.round(s/3600)+" h"; return "hace "+Math.round(s/86400)+" d"; }
+function countdown(iso){ const t=parseISO(iso); if(!t) return ""; let s=(t-Date.now())/1000;
+  if(s<=0) return "en juego"; const d=Math.floor(s/86400); s-=d*86400; const h=Math.floor(s/3600); const m=Math.floor((s-h*3600)/60);
+  if(d>0) return `en ${d}d ${h}h`; if(h>0) return `en ${h}h ${m}m`; return `en ${m}m`; }
+function signed(x, dec=1){ if(typeof x!=="number") return "·"; const c=x>0?"pos":(x<0?"neg":"zero");
+  return `<span class="${c}">${x>=0?"+":""}${x.toFixed(dec)}</span>`; }
 function numOr(x, dec, dash="—"){ return typeof x==="number" ? x.toFixed(dec) : dash; }
 
-/* ---------- carga de datos ---------- */
-const LS_KEY = "polla:data";
-async function loadData(force){
-  try{
-    const r = await fetch("./data/polla.json", {cache: force ? "reload" : "no-store"});
-    if(r.ok){ const d = await r.json(); try{ localStorage.setItem(LS_KEY, JSON.stringify(d)); }catch(e){} return {d, src:"red"}; }
-  }catch(e){ /* file:// u offline */ }
-  if(window.__POLLA__) return {d: window.__POLLA__, src:"bundle"};
-  try{ const c = localStorage.getItem(LS_KEY); if(c) return {d: JSON.parse(c), src:"cache"}; }catch(e){}
-  return {d:null, src:"none"};
+/* ---------- gráficos SVG (cero dependencias, offline) ---------- */
+function spark(vals, w=88, h=24, color="#58a6ff"){
+  const v = (vals||[]).filter(x=>typeof x==="number");
+  if(v.length<2 || Math.max(...v)===Math.min(...v)) return "";
+  const mn=Math.min(...v), mx=Math.max(...v), dx=w/(v.length-1);
+  const pts=v.map((y,i)=>`${(i*dx).toFixed(1)},${(h-2-(h-4)*(y-mn)/(mx-mn)).toFixed(1)}`).join(" ");
+  return `<svg class="spk" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`+
+    `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+function progress(expected, max, captured, color){
+  if(!max) return "";
+  const pe=Math.min(100,100*expected/max), pc=Math.min(100,100*(captured||0)/max);
+  return `<div class="prog"><div class="prog-bar"><span class="pe" style="width:${pe}%;background:${color}"></span>`+
+    `<span class="pc" style="width:${pc}%"></span></div>`+
+    `<div class="prog-lbl"><span>capturado ${(captured||0).toFixed(0)}</span>`+
+    `<span>esperado ${expected.toFixed(0)}</span><span>máx ${max}</span></div></div>`;
+}
+function barChart(items, color){   // items: [{label, value}] -> barras horizontales (0..max)
+  const mx=Math.max(...items.map(i=>i.value), 0.001);
+  return `<div class="bars">`+items.map(i=>
+    `<div class="bar"><span class="bl">${esc(i.label)}</span>`+
+    `<span class="bt"><span style="width:${(100*i.value/mx).toFixed(0)}%;background:${color}"></span></span>`+
+    `<span class="bv">${i.value.toFixed(2)}</span></div>`).join("")+`</div>`;
 }
 
-/* normaliza datos viejos (schema 1, una sola polla) a pools[] */
-function pools(d){
-  if(!d) return [];
-  if(Array.isArray(d.pools)) return d.pools;
-  return [{id:"mundial", name:d.tournament||"Mundial 2026", platform:"golpredictor",
-           color:"#58a6ff", scoring_label:"", standing:d.ranking?null:null, totals:d.totals||{},
-           bonuses:[], matches:d.matches||[], changes:d.changes||[]}];
+/* ---------- carga ---------- */
+const LS_KEY = "polla:data";
+async function loadData(force){
+  try{ const r=await fetch("./data/polla.json",{cache:force?"reload":"no-store"});
+    if(r.ok){ const d=await r.json(); try{localStorage.setItem(LS_KEY,JSON.stringify(d));}catch(e){} return {d,src:"red"}; }
+  }catch(e){}
+  if(window.__POLLA__) return {d:window.__POLLA__, src:"bundle"};
+  try{ const c=localStorage.getItem(LS_KEY); if(c) return {d:JSON.parse(c), src:"cache"}; }catch(e){}
+  return {d:null, src:"none"};
 }
+function pools(d){ return d && Array.isArray(d.pools) ? d.pools : []; }
 function poolById(d, id){ return pools(d).find(p=>p.id===id); }
 function nextClose(p){
-  const fut = (p.matches||[]).filter(m=>!m.actual_result && parseISO(m.kickoff)>Date.now());
-  if(!fut.length) return null;
-  return fut.reduce((a,b)=>parseISO(a.kickoff)<parseISO(b.kickoff)?a:b).kickoff;
+  const fut=(p.matches||[]).filter(m=>!m.actual_result && parseISO(m.kickoff)>Date.now());
+  return fut.length ? fut.reduce((a,b)=>parseISO(a.kickoff)<parseISO(b.kickoff)?a:b).kickoff : null;
 }
 
 /* ---------- estado + router ---------- */
-let DATA = null;
-
+let DATA=null, TAB="resumen";
 function route(){
-  const m = (location.hash||"").match(/^#\/p\/(.+)$/);
-  const pool = m ? poolById(DATA, decodeURIComponent(m[1])) : null;
+  const m=(location.hash||"").match(/^#\/p\/([^/]+)/);
+  const pool=m?poolById(DATA, decodeURIComponent(m[1])):null;
   if(pool) renderDetail(pool); else renderRoot();
 }
 
-/* ---------- render: raiz (hub) ---------- */
+/* ---------- raíz (hub) ---------- */
 function renderRoot(){
-  $("#title").textContent = "Mis Pollas";
-  $("#back").hidden = true;
-  const ps = pools(DATA);
+  $("#title").textContent="Mis Pollas"; $("#back").hidden=true;
+  const ps=pools(DATA), tot=DATA.totals||{};
+  const agg=`<div class="agg"><div><b>${clp(tot.invertido)}</b><span>invertido</span></div>`+
+    `<div><b>${clp(tot.pozo)}</b><span>en juego (pozos)</span></div>`+
+    `<div><b>${ps.length}</b><span>pollas</span></div></div>`;
 
-  // proximos cierres unificados (todas las pollas), siguientes 48 h
-  const now = Date.now(), H48 = 48*3600*1000;
-  let up = [];
-  ps.forEach(p => (p.matches||[]).forEach(m=>{
-    const t = parseISO(m.kickoff);
-    if(!m.actual_result && t && t-now>0 && t-now<=H48) up.push({p, m});
-  }));
+  const now=Date.now(), H48=48*3600*1000; let up=[];
+  ps.forEach(p=>(p.matches||[]).forEach(m=>{ const t=parseISO(m.kickoff);
+    if(!m.actual_result && t && t-now>0 && t-now<=H48) up.push({p,m}); }));
   up.sort((a,b)=>parseISO(a.m.kickoff)-parseISO(b.m.kickoff));
-
   const nextHtml = up.length ? up.slice(0,10).map(({p,m})=>
     `<div class="nx"><span class="dot" style="background:${esc(p.color)}"></span>`+
     `<span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
@@ -126,82 +123,107 @@ function renderRoot(){
     `<span class="cd" data-cd="${esc(m.kickoff)}">${countdown(m.kickoff)}</span></div>`
   ).join("") : `<div class="nx muted">Sin cierres en las próximas 48 h.</div>`;
 
-  const cards = ps.map(p=>{
-    const t = p.totals||{};
-    const nc = nextClose(p);
-    const stand = p.standing ? `<span class="badge">${p.standing.position}º de ${p.standing.total_players}</span>` : "";
-    const bonus = (p.bonuses&&p.bonuses.length) ? `<span class="badge ghost">${p.bonuses.length} bonus</span>` : "";
+  const cards=ps.map(p=>{
+    const t=p.totals||{}, pt=p.points||{}, mo=p.money||{}, er=p.expected_return;
+    const stand=p.standing?`<span class="badge">${p.standing.position}º/${p.standing.total_players}</span>`:"";
+    const sp=spark((p.history||[]).map(h=>h.proj), 80, 22, p.color);
+    const pct=pt.expected_pct!=null?`${pt.expected_pct}%`:"—";
     return `<a class="pool" href="#/p/${encodeURIComponent(p.id)}" style="--pc:${esc(p.color)}">`+
       `<div class="pool-h"><span class="pool-name">${esc(p.name)}</span>${stand}</div>`+
       `<div class="pool-kpis">`+
         `<div><b>${numOr(t.pts_real,0,"0")}</b><span>pts</span></div>`+
-        `<div><b>${numOr(t.proj_final,0,"—")}</b><span>proyección</span></div>`+
-        `<div><b>${signed(typeof t.diff==="number"?t.diff:0,1)}</b><span>Δ esperado</span></div>`+
+        `<div><b>${numOr(t.proj_final,0,"—")}</b><span>proy</span></div>`+
+        `<div><b>${pct}</b><span>de máx ${pt.max||"—"}</span></div>`+
+        `<div class="sp">${sp}</div>`+
       `</div>`+
-      `<div class="pool-f"><span class="muted">${t.n_played||0}/${t.n_total||0} jugados</span>`+
-        `${bonus}<span class="cd" data-cd="${esc(nc||"")}">${nc?("próx. "+countdown(nc)):"sin cierres"}</span></div>`+
-    `</a>`;
+      `<div class="pool-f">`+
+        `<span class="muted">${mo.stake?clp(mo.stake):""}${mo.pot?(" · pozo "+clp(mo.pot)):""}</span>`+
+        `${(p.bonuses&&p.bonuses.length)?`<span class="badge ghost">+${pt.bonus_max} bonus</span>`:""}`+
+        `<span class="cd" data-cd="${esc(nextClose(p)||"")}">${nextClose(p)?("próx. "+countdown(nextClose(p))):""}</span>`+
+      `</div></a>`;
   }).join("");
 
-  $("#view").innerHTML =
-    `<section aria-label="Próximos cierres"><h2>Próximos cierres</h2><div class="next">${nextHtml}</div></section>`+
-    `<section aria-label="Pollas"><h2>Mis pollas</h2><div class="pools">${cards}</div></section>`;
-  tickCountdowns();
-}
-
-/* ---------- render: detalle de una polla ---------- */
-let betsRows = [], sortState = {i:null, dir:1};
-function renderDetail(p){
-  $("#title").textContent = p.name;
-  $("#back").hidden = false;
-  const t = p.totals||{};
-
-  const kpis = [
-    ["Mis puntos", numOr(t.pts_real,0,"0"), `${t.n_played||0}/${t.n_total||0} jugados`],
-    ["Proyección", numOr(t.proj_final,0,"—"), "reales + esperados"],
-    ["Δ vs esperado", signed(typeof t.diff==="number"?t.diff:0,1), "en lo ya jugado"],
-  ];
-  if(p.standing) kpis.push(["Mi posición", `${p.standing.position}º`, `de ${p.standing.total_players}`]);
-  const heroHtml = kpis.map(([l,v,s])=>
-    `<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("");
-
-  const bonusHtml = (p.bonuses&&p.bonuses.length) ?
-    `<section><h2>Bonus</h2><div class="bonus">`+
-    p.bonuses.map(b=>`<div class="bo"><span class="bl">${esc(b.label)}</span>`+
-      `<span class="bp">${flag(b.pick)} ${esc(b.pick||"—")}</span>`+
-      `<span class="bpts">${b.points!=null?("+"+b.points):""}</span></div>`).join("")+
-    `</div></section>` : "";
-
-  const now=Date.now(), H48=48*3600*1000;
-  const up=(p.matches||[]).filter(m=>!m.actual_result && (parseISO(m.kickoff)-now>0) && (parseISO(m.kickoff)-now<=H48))
-    .sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
-  const nextHtml = up.length ? up.map(m=>
-    `<div class="nx"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
-    `<span class="pick">${esc(m.user_pick||"—")}</span><span class="cd" data-cd="${esc(m.kickoff)}">${countdown(m.kickoff)}</span></div>`
-  ).join("") : `<div class="nx muted">Sin cierres en las próximas 48 h.</div>`;
-
-  $("#view").innerHTML =
-    `<section class="kpis" aria-label="Resumen">${heroHtml}</section>`+
-    `<p class="cap">Puntaje: ${esc(p.scoring_label||"")}</p>`+
-    bonusHtml+
+  $("#view").innerHTML = agg+
     `<section><h2>Próximos cierres</h2><div class="next">${nextHtml}</div></section>`+
-    `<section><h2>Mis apuestas vs puntos reales</h2><p class="cap">Toca un encabezado para ordenar.</p>`+
-    `<div class="tbl"><table id="bets" class="sortable"></table></div></section>`+
-    (p.changes&&p.changes.length ? `<section><h2>Cambios del modelo</h2><div id="changes" class="changes"></div></section>` : "");
-
-  buildBets(p);
-  if(p.changes&&p.changes.length) renderChanges(p);
+    `<section><h2>Mis pollas</h2><div class="pools">${cards}</div></section>`;
   tickCountdowns();
 }
 
+/* ---------- detalle (dashboard con pestañas) ---------- */
+function renderDetail(p){
+  $("#title").textContent=p.name; $("#back").hidden=false;
+  const t=p.totals||{}, pt=p.points||{};
+  const kpis=[
+    ["Mis puntos", numOr(t.pts_real,0,"0"), `${t.n_played||0}/${t.n_total||0} jugados`],
+    ["Proyección", numOr(t.proj_final,0,"—"), pt.max?`de máx ${pt.max}`:""],
+    ["% esperado", pt.expected_pct!=null?pt.expected_pct+"%":"—", "esperado/máx"],
+  ];
+  if(p.standing) kpis.push(["Posición", `${p.standing.position}º`, `de ${p.standing.total_players}`]);
+  const heroHtml=kpis.map(([l,v,s])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("");
+
+  const tabs=["resumen","apuestas",...(p.bonuses&&p.bonuses.length?["bonus"]:[]),...(p.changes&&p.changes.length?["cambios"]:[])];
+  const tabBar=`<div class="tabs">`+tabs.map(tb=>
+    `<button class="tab${tb===TAB?" on":""}" data-tab="${tb}">${tb[0].toUpperCase()+tb.slice(1)}</button>`).join("")+`</div>`;
+
+  $("#view").innerHTML=`<section class="kpis">${heroHtml}</section>`+
+    `<p class="cap">Puntaje: ${esc(p.scoring_label||"")}</p>`+
+    tabBar+`<div id="tabbody"></div>`;
+  $("#view").querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{ TAB=b.dataset.tab; renderDetail(p); }));
+  if(!tabs.includes(TAB)) TAB="resumen";
+  renderTab(p);
+  tickCountdowns();
+}
+
+function moneyBlock(p){
+  const mo=p.money, er=p.expected_return;
+  if(!mo) return "";
+  const prizes=(mo.prizes||[]).map(pr=>{
+    const v=pr.refund?`devolución (${clp(mo.stake)})`:clp(pr.amount);
+    return `<span class="pz"><b>${pr.place}º</b> ${v}</span>`;
+  }).join("");
+  const evLine = er ? `<div class="er">Retorno esperado base: <b>${signed(er.ev,0)}</b> `+
+    `<span class="muted">(${esc(er.basis)})</span>`+
+    (er.breakeven_pwin!=null?` · break-even P(ganar) ≥ <b>${(er.breakeven_pwin*100).toFixed(0)}%</b>`:"")+
+    `<div class="muted hint">El edge del modelo es el upside sobre esta base.</div></div>` : "";
+  return `<section class="money"><h2>💰 Dinero</h2><div class="mcard">`+
+    `<div class="mrow"><span>Mi aporte</span><b>${clp(mo.stake)}</b></div>`+
+    `<div class="mrow"><span>Pozo</span><b>${clp(mo.pot)}${mo.players?` · ${mo.players} jug.`:""}</b></div>`+
+    `<div class="prizes">${prizes}</div>${evLine}</div></section>`;
+}
+
+function renderTab(p){
+  const body=$("#tabbody"); const t=p.totals||{}, pt=p.points||{};
+  if(TAB==="resumen"){
+    // dificultad por grupo (EP promedio; menor = más difícil)
+    const byG={}; (p.matches||[]).forEach(m=>{ const g=groupOf(m.fase); if(g&&typeof m.ep==="number"){ (byG[g]=byG[g]||[]).push(m.ep); }});
+    const gItems=Object.keys(byG).sort().map(g=>({label:"G"+g, value:byG[g].reduce((a,b)=>a+b,0)/byG[g].length}));
+    const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
+    body.innerHTML = moneyBlock(p)+
+      `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color)}`+
+      `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
+      `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${bonusPot}</div></section>`+
+      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${spark(p.history.map(h=>h.proj),300,60,p.color)}</div><p class="cap">Proyección de puntos en el tiempo.</p></section>`:"")+
+      (gItems.length?`<section><h2>Dificultad por grupo</h2><p class="cap">Puntos esperados promedio por partido (menor = más difícil de puntuar).</p>${barChart(gItems,p.color)}</section>`:"");
+  } else if(TAB==="apuestas"){
+    body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
+    buildBets(p);
+  } else if(TAB==="bonus"){
+    body.innerHTML=`<div class="bonus">`+(p.bonuses||[]).map(b=>
+      `<div class="bo"><span class="bl">${esc(b.label)}</span><span class="bp">${flag(b.pick)} ${esc(b.pick||"—")}</span>`+
+      `<span class="bpts">${b.points!=null?("+"+b.points):""}</span></div>`).join("")+`</div>`;
+  } else if(TAB==="cambios"){
+    body.innerHTML=`<div id="changes" class="changes"></div>`; renderChanges(p);
+  }
+}
+
+/* ---------- tabla de apuestas ---------- */
+let betsRows=[], sortState={i:null,dir:1};
 function buildBets(p){
-  const cols = [["Fase","text"],["Partido","text"],["Mi marc.","text"],["Real","text"],
-    ["Pts esp.","num"],["Pts real","num"],["Δ","num"],["Cierre","text"]];
-  betsRows = (p.matches||[]).map(m=>{
-    const played = !!m.actual_result;
-    const ep = typeof m.ep==="number" ? m.ep : null;
-    const pe = (played && typeof m.points_earned==="number") ? m.points_earned : null;
-    const diff = (pe!=null && ep!=null) ? pe-ep : null;
+  const cols=[["Fase","text"],["Partido","text"],["Mi marc.","text"],["Real","text"],["Pts esp.","num"],["Pts real","num"],["Δ","num"],["Cierre","text"]];
+  betsRows=(p.matches||[]).map(m=>{
+    const played=!!m.actual_result, ep=typeof m.ep==="number"?m.ep:null;
+    const pe=(played&&typeof m.points_earned==="number")?m.points_earned:null;
+    const diff=(pe!=null&&ep!=null)?pe-ep:null;
     return {played, cells:[
       {h:`<span class="ph">${esc(phaseShort(m.fase))}</span>`, s:phaseKey(m.fase), cls:"ph"},
       {h:teamCell(m.home,m.away), s:norm(m.home), cls:"match"},
@@ -213,86 +235,48 @@ function buildBets(p){
       {h:`<span class="ko">${esc(koLabel(m.kickoff))}</span>`, s:m.kickoff||"", cls:"ko"},
     ]};
   });
-  const thead = `<thead><tr>${cols.map(([l,t],i)=>`<th data-i="${i}" data-type="${t}" class="${i>=4&&i<=6?'c':''}">${esc(l)}</th>`).join("")}</tr></thead>`;
-  const table = $("#bets");
-  table.innerHTML = thead + `<tbody></tbody>`;
-  table.querySelectorAll("thead th").forEach(th=>th.addEventListener("click", ()=>sortBets(parseInt(th.dataset.i,10), th)));
-  sortState = {i:null, dir:1};
-  paintBets();
+  const thead=`<thead><tr>${cols.map(([l,tp],i)=>`<th data-i="${i}" data-type="${tp}" class="${i>=4&&i<=6?'c':''}">${esc(l)}</th>`).join("")}</tr></thead>`;
+  const table=$("#bets"); table.innerHTML=thead+`<tbody></tbody>`;
+  table.querySelectorAll("thead th").forEach(th=>th.addEventListener("click",()=>sortBets(parseInt(th.dataset.i,10),th)));
+  sortState={i:null,dir:1}; paintBets();
 }
-function paintBets(){
-  const tb = $("#bets tbody"); if(!tb) return;
-  tb.innerHTML = betsRows.map(r=>`<tr class="${r.played?"played":""}">`+
-    r.cells.map(c=>`<td class="${c.cls}">${c.h}</td>`).join("")+`</tr>`).join("");
-}
+function paintBets(){ const tb=$("#bets tbody"); if(!tb) return;
+  tb.innerHTML=betsRows.map(r=>`<tr class="${r.played?"played":""}">`+r.cells.map(c=>`<td class="${c.cls}">${c.h}</td>`).join("")+`</tr>`).join(""); }
 function sortBets(i, th){
-  const dir = (sortState.i===i && sortState.dir===1) ? -1 : 1;
-  sortState = {i, dir};
+  const dir=(sortState.i===i&&sortState.dir===1)?-1:1; sortState={i,dir};
   document.querySelectorAll("#bets thead th").forEach(x=>x.classList.remove("asc","desc"));
-  th.classList.add(dir===1?"asc":"desc");
-  const num = th.dataset.type==="num";
-  betsRows.sort((a,b)=>{
-    let x=a.cells[i].s, y=b.cells[i].s;
-    if(num){ x=parseFloat(x); y=parseFloat(y); } else { x=String(x).toLowerCase(); y=String(y).toLowerCase(); }
-    return x<y?-dir:(x>y?dir:0);
-  });
+  th.classList.add(dir===1?"asc":"desc"); const num=th.dataset.type==="num";
+  betsRows.sort((a,b)=>{ let x=a.cells[i].s,y=b.cells[i].s; if(num){x=parseFloat(x);y=parseFloat(y);}else{x=String(x).toLowerCase();y=String(y).toLowerCase();} return x<y?-dir:(x>y?dir:0); });
   paintBets();
 }
-
 function renderChanges(p){
-  const cs = (p.changes||[]).slice(0, 60);
-  const el = $("#changes"); if(!el) return;
-  if(!cs.length){ el.innerHTML = `<div class="cg muted">Sin cambios registrados.</div>`; return; }
-  el.innerHTML = cs.map(c=>{
-    const ep = (typeof c.ep_from==="number" && typeof c.ep_to==="number")
-      ? `<span class="ep">${c.ep_from.toFixed(2)} → ${c.ep_to.toFixed(2)} pts</span>`
-      : (typeof c.ep_to==="number" ? `<span class="ep">${c.ep_to.toFixed(2)} pts</span>` : "");
-    return `<div class="cg"><div class="row1">`+
-      `<span class="chip">${esc(phaseShort(c.phase))}</span>${teamCell(c.home,c.away)}`+
+  const cs=(p.changes||[]).slice(0,60), el=$("#changes"); if(!el) return;
+  if(!cs.length){ el.innerHTML=`<div class="cg muted">Sin cambios registrados.</div>`; return; }
+  el.innerHTML=cs.map(c=>{
+    const ep=(typeof c.ep_from==="number"&&typeof c.ep_to==="number")?`<span class="ep">${c.ep_from.toFixed(2)} → ${c.ep_to.toFixed(2)} pts</span>`:(typeof c.ep_to==="number"?`<span class="ep">${c.ep_to.toFixed(2)} pts</span>`:"");
+    return `<div class="cg"><div class="row1"><span class="chip">${esc(phaseShort(c.phase))}</span>${teamCell(c.home,c.away)}`+
       `<span class="score">&nbsp;${esc(c.from||"—")} <span class="arrow">→</span> <span class="to">${esc(c.to)}</span></span>${ep}</div>`+
-      `<div class="reason">${esc(c.reason||"")}</div>`+
-      `<div class="when">${esc(relTime(c.ts))}</div></div>`;
+      `<div class="reason">${esc(c.reason||"")}</div><div class="when">${esc(relTime(c.ts))}</div></div>`;
   }).join("");
-  el.querySelectorAll(".cg").forEach(d=>d.addEventListener("click", ()=>d.classList.toggle("open")));
+  el.querySelectorAll(".cg").forEach(d=>d.addEventListener("click",()=>d.classList.toggle("open")));
 }
 
-function tickCountdowns(){
-  document.querySelectorAll("[data-cd]").forEach(el=>{
-    const v = el.dataset.cd; if(!v) return;
-    const pre = el.textContent.startsWith("próx.") ? "próx. " : "";
-    el.textContent = pre + countdown(v);
-  });
-}
-
-function setStatus(msg, isErr){
-  const s = $("#status");
-  if(!msg){ s.hidden=true; return; }
-  s.hidden=false; s.textContent=msg; s.classList.toggle("err", !!isErr);
-}
+function tickCountdowns(){ document.querySelectorAll("[data-cd]").forEach(el=>{ const v=el.dataset.cd; if(!v) return;
+  const pre=el.textContent.startsWith("próx.")?"próx. ":""; el.textContent=pre+countdown(v); }); }
+function setStatus(msg, isErr){ const s=$("#status"); if(!msg){s.hidden=true;return;} s.hidden=false; s.textContent=msg; s.classList.toggle("err",!!isErr); }
 
 async function refresh(force){
   $("#view").setAttribute("aria-busy","true");
-  const {d, src} = await loadData(force);
-  if(!d){
-    setStatus("No pude cargar los datos. Si abres el archivo local directamente, sírvelo con: python3 -m http.server", true);
-    $("#updated").textContent = "sin datos";
-    $("#view").setAttribute("aria-busy","false");
-    return;
-  }
-  DATA = d;
-  setStatus(src==="cache" ? "Mostrando última copia guardada (sin conexión)." : "", false);
-  $("#updated").textContent = "actualizado " + relTime(d.updated_at);
-  route();
-  $("#view").setAttribute("aria-busy","false");
+  const {d,src}=await loadData(force);
+  if(!d){ setStatus("No pude cargar los datos. Sírvelo con: python3 -m http.server", true); $("#updated").textContent="sin datos"; $("#view").setAttribute("aria-busy","false"); return; }
+  DATA=d; setStatus(src==="cache"?"Mostrando última copia guardada (sin conexión).":"", false);
+  $("#updated").textContent="actualizado "+relTime(d.updated_at);
+  route(); $("#view").setAttribute("aria-busy","false");
 }
 
-$("#refresh").addEventListener("click", ()=>refresh(true));
-$("#back").addEventListener("click", ()=>{ if(history.length>1) history.back(); else location.hash = "#/"; });
-window.addEventListener("hashchange", ()=>{ if(DATA) route(); });
+$("#refresh").addEventListener("click",()=>refresh(true));
+$("#back").addEventListener("click",()=>{ TAB="resumen"; if(history.length>1) history.back(); else location.hash="#/"; });
+window.addEventListener("hashchange",()=>{ if(DATA) route(); });
 setInterval(tickCountdowns, 60000);
 refresh(false);
-
-/* PWA: offline del shell (solo http/https; en file:// se omite) */
-if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
-}
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
