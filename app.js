@@ -252,8 +252,10 @@ function renderTab(p){
       `<section><h2>Tabla de posiciones</h2>${standingsList(p.standings)}</section>`;
   } else if(TAB==="bonus"){
     body.innerHTML=`<div class="bonus">`+(p.bonuses||[]).map(b=>
-      `<div class="bo"><span class="bl">${esc(b.label)}</span><span class="bp">${flag(b.pick)} ${esc(b.pick||"—")}</span>`+
-      `<span class="bpts">${b.points!=null?("+"+b.points):""}</span></div>`).join("")+`</div>`;
+      `<div class="bo"><span class="bl">${esc(b.label)}${b.prob!=null?` · <span class="bprob">${Math.round(b.prob*100)}%</span>`:""}</span>`+
+      `<span class="bp">${flag(b.pick)} ${esc(b.pick||"—")}</span>`+
+      `<span class="bpts">${b.points!=null?("+"+b.points):""}</span></div>`).join("")+`</div>`+
+      `<p class="cap">El % es la probabilidad del modelo de que ese equipo logre ese puesto (Monte Carlo del bracket). Goleador/jugadores no tienen modelo.</p>`;
   } else if(TAB==="cambios"){
     body.innerHTML=`<div id="changes" class="changes"></div>`; renderChanges(p);
   }
