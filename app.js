@@ -105,6 +105,21 @@ function trendChart(vals, baseline, color, w=300, h=60){
   return `<svg class="spk" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${base}`+
     `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
 }
+function dualSpark(real, proj, color, w=300, h=60, small=false){
+  // Linea SOLIDA = puntos reales (sube siempre); punteada tenue = proyeccion (referencia).
+  const R=(real||[]).map(x=>typeof x==="number"?x:null);
+  const P=(proj||[]).map(x=>typeof x==="number"?x:null);
+  const nums=R.concat(P).filter(x=>typeof x==="number");
+  if(nums.length<2) return "";
+  const mn=Math.min(0,...nums), mx=Math.max(...nums), rng=(mx-mn)||1, pad=small?2:5;
+  const n=Math.max(R.length,P.length), dx=w/Math.max(1,n-1);
+  const y=val=>(h-pad-(h-2*pad)*(val-mn)/rng).toFixed(1);
+  const line=arr=>arr.map((v,i)=> v==null?null:`${(i*dx).toFixed(1)},${y(v)}`).filter(Boolean).join(" ");
+  const pj=line(P), rl=line(R);
+  return `<svg class="spk" width="${small?w:'100%'}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`+
+    (pj?`<polyline points="${pj}" fill="none" stroke="#8b949e" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.7"/>`:"")+
+    (rl?`<polyline points="${rl}" fill="none" stroke="${color}" stroke-width="2"/>`:"")+`</svg>`;
+}
 function standingsList(rows){
   return `<div class="stand">`+rows.map(r=>
     `<div class="st-row${r.mine?" me":""}"><span class="st-pos">${r.pos}º</span>`+
@@ -183,7 +198,7 @@ function renderRoot(){
     const players=(p.standing&&p.standing.total_players)||mo.players;
     const stand=p.standing?`<span class="badge">${p.standing.position}º/${p.standing.total_players}</span>`
       :(players?`<span class="badge ghost">${players} jug.</span>`:"");
-    const sp=spark((p.history||[]).map(h=>h.proj), 80, 22, p.color);
+    const sp=dualSpark((p.history||[]).map(h=>h.pts), (p.history||[]).map(h=>h.proj), p.color, 80, 22, true);
     const pct=pt.expected_pct!=null?`${pt.expected_pct}%`:"—";
     return `<a class="pool" href="#/p/${encodeURIComponent(p.id)}" style="--pc:${esc(p.color)}">`+
       `<div class="pool-h"><span class="pool-name">${esc(p.name)}</span>${stand}</div>`+
@@ -277,7 +292,7 @@ function renderTab(p){
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
       `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${vara}${liveStat}${bonusPot}</div></section>`+
       ((p.groups&&p.groups.length)?`<section><h2>Por grupo</h2><p class="cap">Por grupo: <b>real</b> acumulado · <b>esperado</b> actual · marca = <b>tu vara</b> (esperado pre-torneo) · barra completa = <b>máx</b> alcanzable.</p>${groupBars(p.groups,p.color)}</section>`:"")+
-      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${trendChart(p.history.map(h=>h.proj),null,p.color)}</div><p class="cap">Proyección de puntos en el tiempo.</p></section>`:"");
+      (p.history&&p.history.length>=3?`<section><h2>Tendencia</h2><div class="bigspark">${dualSpark(p.history.map(h=>h.pts),p.history.map(h=>h.proj),p.color)}</div><p class="cap">Línea sólida = <b>puntos reales</b> (solo sube) · punteada = <b>proyección final</b> (real + esperado de lo pendiente).</p></section>`:"");
   } else if(TAB==="apuestas"){
     const hasProv=(p.matches||[]).some(m=>m.provisional);
     body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.${hasProv?' <span class="prov">*</span> resultado provisorio (ESPN, antes de que la polla lo confirme).':''}</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;

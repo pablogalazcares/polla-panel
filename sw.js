@@ -1,6 +1,6 @@
 /* Service worker: network-first para TODO (siempre trae lo último online; cae a caché solo
    sin conexión). Evita el problema de "no veo mis cambios" del cache-first. */
-const C = "polla-v11";
+const C = "polla-v12";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", (e) => {
