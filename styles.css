@@ -174,7 +174,10 @@ tr.played{background:rgba(63,185,80,.06)}
 .bar .bt span{display:block; height:100%}
 .bar .bv{width:38px; text-align:right; color:var(--dim); flex:0 0 auto; font-variant-numeric:tabular-nums}
 .bigspark{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
-.bigspark .spk{width:100%; height:auto}
+.bigspark .spk{width:100%; height:auto; touch-action:pan-y}
+.tip{position:fixed; z-index:60; background:#161b22; border:1px solid var(--line); color:var(--fg,#e6edf3);
+  padding:6px 9px; border-radius:7px; font-size:11px; line-height:1.4; white-space:pre-line;
+  pointer-events:none; max-width:72vw; box-shadow:0 6px 18px rgba(0,0,0,.45)}
 
 /* pestañas */
 .tabs{display:flex; gap:6px; margin:14px 0 10px; overflow-x:auto; -webkit-overflow-scrolling:touch}

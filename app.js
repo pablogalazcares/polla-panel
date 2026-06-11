@@ -128,7 +128,7 @@ function trendCum(matches, color, w=300, h=60, big=false){
       const t=`${i+1}. ${m.home} vs ${m.away}  (${m.fase||""})\n`+
         `Esperado acum.: ${exp[i].toFixed(1)}\nReal acum.: ${real[i].toFixed(1)}\n`+
         (played?`Este: ${m.actual_result} -> +${m.points_earned}`:`Sin jugar · tu pick ${m.user_pick||"—"} · EP ${(+m.ep).toFixed(2)}`);
-      return `<rect x="${(X(i)-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent"><title>${esc(t)}</title></rect>`;
+      return `<rect x="${(X(i)-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-tip="${esc(t).replace(/"/g,"&quot;")}"></rect>`;
     }).join("");
   }
   return `<svg class="spk" width="${big?'100%':w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`+
@@ -388,6 +388,22 @@ async function refresh(force){
   $("#updated").textContent="actualizado "+relTime(d.updated_at);
   route(); $("#view").setAttribute("aria-busy","false");
 }
+
+// Tooltip flotante para los graficos (mouse + touch via Pointer Events).
+const TIP=(()=>{ const el=document.createElement("div"); el.className="tip"; el.style.display="none"; document.body.appendChild(el); return el; })();
+function showTip(text,x,y){
+  TIP.textContent=text; TIP.style.display="block";
+  const w=TIP.offsetWidth,h=TIP.offsetHeight,m=10;
+  TIP.style.left=Math.min(window.innerWidth-w-6,Math.max(6,x-w/2))+"px";
+  TIP.style.top=((y-h-m)<6?(y+m+14):(y-h-m))+"px";
+}
+function hideTip(){ TIP.style.display="none"; }
+function tipFrom(e){ const t=e.target.closest&&e.target.closest("[data-tip]");
+  if(t){ showTip(t.getAttribute("data-tip"),e.clientX,e.clientY); return true; } return false; }
+document.addEventListener("pointermove",e=>{ if(!tipFrom(e)) hideTip(); },{passive:true});
+document.addEventListener("pointerdown",e=>{ tipFrom(e); },{passive:true});
+document.addEventListener("pointerup",()=>setTimeout(hideTip,1800),{passive:true});
+window.addEventListener("scroll",hideTip,{passive:true});
 
 $("#refresh").addEventListener("click",()=>refresh(true));
 $("#back").addEventListener("click",()=>{ TAB="resumen"; if(history.length>1) history.back(); else location.hash="#/"; });
