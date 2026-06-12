@@ -276,9 +276,13 @@ function renderRoot(){
 
   // En vivo (en juego ahora) y Últimos resultados — nivel torneo (reciclado de P3)
   const tm=allMatches(DATA);
-  const live=tm.filter(m=>{ const t=parseISO(m.kickoff); return !m.actual_result && t && now>=t && now<=t+135*60*1000; })
-    .sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
-  const recent=tm.filter(m=>m.actual_result).sort((a,b)=>parseISO(b.kickoff)-parseISO(a.kickoff)).slice(0,6);
+  const LIVE_MS=135*60*1000;   // ventana de juego: 90' + entretiempo + adición
+  const inWindow=m=>{ const t=parseISO(m.kickoff); return t && now>=t && now<=t+LIVE_MS; };
+  // "final" = resultado OFICIAL, o provisorio ya fuera de la ventana de juego. Un marcador
+  // provisorio (en vivo) DENTRO de la ventana NO finaliza el partido: sigue "En vivo".
+  const isFinal=m=>m.actual_result && (!m.provisional || !inWindow(m));
+  const live=tm.filter(m=>inWindow(m) && !isFinal(m)).sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
+  const recent=tm.filter(isFinal).sort((a,b)=>parseISO(b.kickoff)-parseISO(a.kickoff)).slice(0,6);
   const liveHtml = live.length ? `<section><h2>En vivo</h2><p class="cap">Toca un partido para ver tu apuesta en cada polla.</p><div class="next">`+live.map(m=>{
     const key=norm(m.home)+"|"+norm(m.away);
     const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key);
