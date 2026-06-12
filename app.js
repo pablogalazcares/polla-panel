@@ -277,9 +277,17 @@ function renderRoot(){
   const live=tm.filter(m=>{ const t=parseISO(m.kickoff); return !m.actual_result && t && now>=t && now<=t+135*60*1000; })
     .sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
   const recent=tm.filter(m=>m.actual_result).sort((a,b)=>parseISO(b.kickoff)-parseISO(a.kickoff)).slice(0,6);
-  const liveHtml = live.length ? `<section><h2>En vivo</h2><div class="next">`+live.map(m=>
-    `<div class="nx live"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
-    `<span class="cd live">en juego</span></div>`).join("")+`</div></section>` : "";
+  const liveHtml = live.length ? `<section><h2>En vivo</h2><p class="cap">Toca un partido para ver tu apuesta en cada polla.</p><div class="next">`+live.map(m=>{
+    const key=norm(m.home)+"|"+norm(m.away);
+    const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key);
+      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep}:null; }).filter(Boolean);
+    const det=per.map(x=>`<div class="pp"><span class="dot" style="background:${esc(x.color)}"></span>`+
+      `<span class="pp-name">${esc(x.name)}</span><span class="pp-pick">${esc(x.pick||"—")}</span>`+
+      `<span class="pp-ep">EP ${numOr(x.ep,2,"—")}</span></div>`).join("");
+    return `<div class="nx exp live"><div class="nx-h"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
+      `<span class="cd live">en juego ▾</span></div>`+
+      `<div class="pp-list">${det}</div></div>`;
+  }).join("")+`</div></section>` : "";
   const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><p class="cap">Toca un resultado para ver tus puntos esperados y ganados en cada polla.</p><div class="next">`+recent.map(m=>{
     const key=norm(m.home)+"|"+norm(m.away);
     const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key && x.actual_result);
