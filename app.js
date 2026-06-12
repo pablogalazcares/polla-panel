@@ -88,11 +88,13 @@ function groupBars(groups, color){
 }
 function multiLine(series, color, w=320, h=140){
   const rawTs=(series&&series.ts)||[], rawLines=(series&&series.lines)||[];
-  // el eje son snapshots de CI (no partidos): colapsa tomas consecutivas sin cambios de puntaje
+  // el eje son snapshots de CI (no partidos): deja solo las tomas donde el puntaje cambió.
+  // null = participante que aún no entraba -> se trata como 0 (si no, el goteo de altas en la
+  // zona inicial en 0 crea muchos puntos "vacíos" que no son cambios reales de standings).
+  const keyAt=i=>rawLines.map(l=>l.pts[i]==null?0:l.pts[i]).join("|");
   const keep=[];
   for(let i=0;i<rawTs.length;i++){
-    const cur=rawLines.map(l=>l.pts[i]).join("|");
-    if(i===0 || cur!==rawLines.map(l=>l.pts[i-1]).join("|")) keep.push(i);
+    if(i===0 || keyAt(i)!==keyAt(i-1)) keep.push(i);
   }
   const ts=keep.map(i=>rawTs[i]);
   const lines=rawLines.map(l=>({...l, pts:keep.map(i=>l.pts[i])}));
