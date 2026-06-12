@@ -76,7 +76,9 @@ function groupBars(groups, color){
   return `<div class="gbars">`+(groups||[]).map(g=>{
     const pe=Math.min(100,100*g.expected/g.max), pc=Math.min(100,100*g.real/g.max);
     const mark=typeof g.baseline==="number"?`<span class="mark" style="left:${Math.min(100,100*g.baseline/g.max).toFixed(1)}%"></span>`:"";
-    return `<div class="gbar"><div class="gbar-h"><span class="gl">Grupo ${esc(g.group)}</span>`+
+    const tip=`Grupo ${g.group}\nReal acumulado: ${g.real}\nEsperado actual: ${g.expected}`+
+      (g.baseline!=null?`\nTu vara (pre-torneo): ${g.baseline}`:"")+`\nMáx alcanzable: ${g.max}`;
+    return `<div class="gbar" data-tip="${esc(tip).replace(/"/g,"&quot;")}"><div class="gbar-h"><span class="gl">Grupo ${esc(g.group)}</span>`+
       `<span class="muted">real ${g.real} · esp ${g.expected}${g.baseline!=null?` · vara ${g.baseline}`:""} · máx ${g.max}</span></div>`+
       `<div class="prog-bar"><span class="pe" style="width:${pe}%;background:${esc(color)}"></span>`+
       `<span class="pc" style="width:${pc}%"></span>${mark}</div></div>`;
@@ -90,8 +92,20 @@ function multiLine(series, color, w=320, h=140){
   const path=l=>l.pts.map((v,i)=> (typeof v!=="number")?null:`${(i*dx).toFixed(1)},${(h-pad-(h-2*pad)*v/mx).toFixed(1)}`)
     .filter(Boolean).join(" ");
   const others=lines.filter(l=>!l.mine).map(l=>`<polyline points="${path(l)}" fill="none" stroke="#30363d" stroke-width="1.2"/>`).join("");
-  const mine=lines.filter(l=>l.mine).map(l=>`<polyline points="${path(l)}" fill="none" stroke="${color}" stroke-width="2.4"/>`).join("");
-  return `<svg class="ml" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${others}${mine}</svg>`;
+  const mineLines=lines.filter(l=>l.mine);
+  const mine=mineLines.map(l=>`<polyline points="${path(l)}" fill="none" stroke="${color}" stroke-width="2.4"/>`).join("");
+  const Y=v=>(h-pad-(h-2*pad)*v/mx).toFixed(1);
+  // puntos sobre mi línea (afordancia de hover) + zonas invisibles con el ranking de cada toma
+  const dots=mineLines.map(l=>l.pts.map((v,i)=>typeof v==="number"
+    ?`<circle cx="${(i*dx).toFixed(1)}" cy="${Y(v)}" r="2" fill="${color}"/>`:"").join("")).join("");
+  const hits=ts.map((t,i)=>{
+    const rows=lines.map(l=>({label:l.label,pts:l.pts[i],mine:l.mine}))
+      .filter(r=>typeof r.pts==="number").sort((a,b)=>b.pts-a.pts);
+    if(!rows.length) return "";
+    const tip=koLabel(t)+"\n"+rows.map((r,k)=>`${k+1}. ${r.mine?"★ ":""}${r.label}: ${r.pts}`).join("\n");
+    return `<rect x="${(i*dx-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-tip="${esc(tip).replace(/"/g,"&quot;")}"></rect>`;
+  }).join("");
+  return `<svg class="ml" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${others}${mine}${dots}${hits}</svg>`;
 }
 function trendChart(vals, baseline, color, w=300, h=60){
   const v=(vals||[]).filter(x=>typeof x==="number");
@@ -301,7 +315,7 @@ function renderTab(p){
     const base=p.baseline&&typeof p.baseline.proj==="number"?p.baseline.proj:null;
     const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
     const liveStat=pt.provisional_n?`<div class="stat live"><b>${pt.live}</b><span>en vivo (prov.)</span></div>`:"";
-    const vara=(base!=null)?`<div class="stat"><b>${signed(t.proj_final-base,0)}</b><span>vs tu vara</span></div>`:"";
+    const vara=(base!=null)?`<div class="stat vara"><b>${signed(t.proj_final-base,0)}</b><span>vs tu vara</span></div>`:"";
     body.innerHTML = moneyBlock(p)+
       `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color, base)}`+
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
