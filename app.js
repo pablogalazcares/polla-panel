@@ -67,7 +67,9 @@ function progress(expected, max, captured, color, baseline){
   if(!max) return "";
   const pe=Math.min(100,100*expected/max), pc=Math.min(100,100*(captured||0)/max);
   const mark=typeof baseline==="number"?`<span class="mark" title="tu vara" style="left:${Math.min(100,100*baseline/max).toFixed(1)}%"></span>`:"";
-  return `<div class="prog"><div class="prog-bar"><span class="pe" style="width:${pe}%;background:${color}"></span>`+
+  const tip=`Capturado (real): ${(captured||0).toFixed(0)}\nEsperado (proyección): ${expected.toFixed(0)}`+
+    (typeof baseline==="number"?`\nTu vara (pre-torneo): ${baseline.toFixed(0)}`:"")+`\nMáx alcanzable: ${max}`;
+  return `<div class="prog"><div class="prog-bar" data-tip="${esc(tip).replace(/"/g,"&quot;")}"><span class="pe" style="width:${pe}%;background:${color}"></span>`+
     `<span class="pc" style="width:${pc}%"></span>${mark}</div>`+
     `<div class="prog-lbl"><span>capturado ${(captured||0).toFixed(0)}</span><span>esperado ${expected.toFixed(0)}</span>`+
     `${typeof baseline==="number"?`<span class="vara">vara ${baseline.toFixed(0)}</span>`:""}<span>máx ${max}</span></div></div>`;
@@ -85,8 +87,16 @@ function groupBars(groups, color){
   }).join("")+`</div>`;
 }
 function multiLine(series, color, w=320, h=140){
-  const ts=(series&&series.ts)||[], lines=(series&&series.lines)||[];
-  if(ts.length<2) return "";   // sin evolución aún (1 sola toma)
+  const rawTs=(series&&series.ts)||[], rawLines=(series&&series.lines)||[];
+  // el eje son snapshots de CI (no partidos): colapsa tomas consecutivas sin cambios de puntaje
+  const keep=[];
+  for(let i=0;i<rawTs.length;i++){
+    const cur=rawLines.map(l=>l.pts[i]).join("|");
+    if(i===0 || cur!==rawLines.map(l=>l.pts[i-1]).join("|")) keep.push(i);
+  }
+  const ts=keep.map(i=>rawTs[i]);
+  const lines=rawLines.map(l=>({...l, pts:keep.map(i=>l.pts[i])}));
+  if(ts.length<2) return "";   // sin evolución aún (1 solo estado)
   let mx=0; lines.forEach(l=>l.pts.forEach(v=>{ if(typeof v==="number"&&v>mx) mx=v; }));
   mx=mx||1; const dx=w/(ts.length-1), pad=4;
   const path=l=>l.pts.map((v,i)=> (typeof v!=="number")?null:`${(i*dx).toFixed(1)},${(h-pad-(h-2*pad)*v/mx).toFixed(1)}`)
@@ -120,34 +130,37 @@ function trendChart(vals, baseline, color, w=300, h=60){
     `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
 }
 function trendCum(matches, color, w=300, h=60, big=false){
-  // Eje X = partidos (orden de inicio). Punteada = esperado (EP) acumulado partido a
-  // partido; solida = puntos reales acumulados (solo de los ya jugados).
+  // Eje X = partidos (orden de inicio). Línea sólida (color) = puntos REALES acumulados
+  // (solo lo ya jugado). Punteada = PROYECCIÓN hacia adelante: real + EP de lo pendiente.
   const ms=(matches||[]).filter(m=>typeof m.ep==="number")
     .slice().sort((a,b)=>((a.kickoff||"")>(b.kickoff||"")?1:(a.kickoff||"")<(b.kickoff||"")?-1:(a.id||0)-(b.id||0)));
   if(ms.length<2) return "";
-  let ce=0, cr=0; const exp=[], real=[];
-  ms.forEach(m=>{
-    ce+=m.ep; exp.push(ce);
-    if(m.actual_result!=null && typeof m.points_earned==="number") cr+=m.points_earned;
-    real.push(cr);
+  let cum=0, lastPlayed=-1; const proj=[], isP=[];
+  ms.forEach((m,i)=>{
+    const played=m.actual_result!=null && typeof m.points_earned==="number";
+    cum += played ? m.points_earned : m.ep;
+    proj.push(cum); isP.push(played);
+    if(played) lastPlayed=i;
   });
-  const mx=Math.max(...exp, ...real, 1), pad=big?6:2, n=ms.length, dx=w/(n-1);
+  const mx=Math.max(...proj, 1), pad=big?6:2, n=ms.length, dx=w/(n-1);
   const X=i=>i*dx, Y=v=>h-pad-(h-2*pad)*v/mx;
-  const poly=arr=>arr.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  const seg=(from,to)=>{ const a=[]; for(let i=from;i<=to;i++) a.push(`${X(i).toFixed(1)},${Y(proj[i]).toFixed(1)}`); return a.join(" "); };
+  const real = lastPlayed>=1 ? `<polyline points="${seg(0,lastPlayed)}" fill="none" stroke="${color}" stroke-width="2.2"/>` : "";
+  // proyección desde el último jugado (o desde el inicio si no hay nada jugado)
+  const fwdFrom = Math.max(0, lastPlayed);
+  const fwd = fwdFrom < n-1 ? `<polyline points="${seg(fwdFrom,n-1)}" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.65"/>` : "";
   let dots="", hits="";
   if(big){
-    dots=ms.map((m,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(exp[i]).toFixed(1)}" r="1.6" fill="#8b949e"/>`).join("");
+    dots=ms.map((m,i)=>isP[i]?`<circle cx="${X(i).toFixed(1)}" cy="${Y(proj[i]).toFixed(1)}" r="2" fill="${color}"/>`:"").join("");
     hits=ms.map((m,i)=>{
-      const played=m.actual_result!=null && typeof m.points_earned==="number";
       const t=`${i+1}. ${m.home} vs ${m.away}  (${m.fase||""})\n`+
-        `Esperado acum.: ${exp[i].toFixed(1)}\nReal acum.: ${real[i].toFixed(1)}\n`+
-        (played?`Este: ${m.actual_result} -> +${m.points_earned}`:`Sin jugar · tu pick ${m.user_pick||"—"} · EP ${(+m.ep).toFixed(2)}`);
+        (isP[i]?`Jugado: ${m.actual_result} → +${m.points_earned}\nReal acumulado: ${proj[i].toFixed(1)}`
+               :`Sin jugar · tu pick ${m.user_pick||"—"} · EP ${(+m.ep).toFixed(2)}\nProyección acumulada: ${proj[i].toFixed(1)}`);
       return `<rect x="${(X(i)-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-tip="${esc(t).replace(/"/g,"&quot;")}"></rect>`;
     }).join("");
   }
   return `<svg class="spk" width="${big?'100%':w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`+
-    `<polyline points="${poly(exp)}" fill="none" stroke="#8b949e" stroke-width="1.3" stroke-dasharray="4 3" opacity="0.8"/>`+
-    `<polyline points="${poly(real)}" fill="none" stroke="${color}" stroke-width="2"/>${dots}${hits}</svg>`;
+    `${fwd}${real}${dots}${hits}</svg>`;
 }
 function standingsList(rows){
   return `<div class="stand">`+rows.map(r=>
@@ -161,6 +174,16 @@ function barChart(items, color){   // items: [{label, value}] -> barras horizont
     `<span class="bt"><span style="width:${(100*i.value/mx).toFixed(0)}%;background:${color}"></span></span>`+
     `<span class="bv">${i.value.toFixed(2)}</span></div>`).join("")+`</div>`;
 }
+
+/* balance si la polla cerrara HOY: pago según mi posición actual − mi aporte */
+function closeBalance(p){
+  const mo=p.money, st=p.standing;
+  if(!mo || !st || typeof st.position!=="number") return null;
+  const pr=(mo.prizes||[]).find(x=>x.place===st.position);
+  const payout = pr ? (pr.refund ? (mo.stake||0) : (pr.amount||0)) : 0;
+  return {position:st.position, payout, net:payout-(mo.stake||0), inMoney:!!pr, refund:!!(pr&&pr.refund)};
+}
+function moneyDelta(n){ const c=n>0?"pos":(n<0?"neg":"zero"); const s=n>0?"+":(n<0?"−":""); return `<span class="${c}">${s}${clp(Math.abs(n))}</span>`; }
 
 /* ---------- carga ---------- */
 const LS_KEY = "polla:data";
@@ -200,9 +223,13 @@ function route(){
 function renderRoot(){
   $("#title").textContent="Mis Pollas"; $("#back").hidden=true;
   const ps=pools(DATA), tot=DATA.totals||{};
+  const bal=ps.map(closeBalance).filter(Boolean);
+  const totNet=bal.reduce((a,b)=>a+b.net,0), todayGross=bal.reduce((a,b)=>a+b.payout,0);
+  const maxWin=ps.reduce((a,p)=>{ const pr=((p.money&&p.money.prizes)||[]).find(x=>x.place===1); return a+(pr?(pr.amount||0):0); },0);
   const agg=`<div class="agg"><div><b>${clp(tot.invertido)}</b><span>invertido</span></div>`+
     `<div><b>${clp(tot.pozo)}</b><span>en juego (pozos)</span></div>`+
-    `<div><b>${ps.length}</b><span>pollas</span></div></div>`;
+    `<div><b>${clp(maxWin)}</b><span>máximo a ganar <span class="mini">(1º en todas)</span></span></div>`+
+    `<div><b>${clp(todayGross)}</b><span>ganando hoy · neto ${moneyDelta(totNet)}</span></div></div>`;
 
   const now=Date.now();
   // próximos 5 PARTIDOS (deduplicados por equipos); cada uno despliega la apuesta y EP por polla
@@ -223,7 +250,7 @@ function renderRoot(){
   }).join("") : `<div class="nx muted">Sin partidos próximos.</div>`;
 
   const cards=ps.map(p=>{
-    const t=p.totals||{}, pt=p.points||{}, mo=p.money||{}, er=p.expected_return;
+    const t=p.totals||{}, pt=p.points||{}, mo=p.money||{}, er=p.expected_return, cb=closeBalance(p);
     const players=(p.standing&&p.standing.total_players)||mo.players;
     const stand=p.standing?`<span class="badge">${p.standing.position}º/${p.standing.total_players}</span>`
       :(players?`<span class="badge ghost">${players} jug.</span>`:"");
@@ -240,6 +267,7 @@ function renderRoot(){
       `<div class="pool-f">`+
         `<span class="muted">${mo.stake?clp(mo.stake):""}${mo.pot?(" · pozo "+clp(mo.pot)):""}</span>`+
         `${(p.bonuses&&p.bonuses.length)?`<span class="badge ghost">+${pt.bonus_max} bonus</span>`:""}`+
+        `${cb?`<span class="hoy">hoy ${moneyDelta(cb.net)}</span>`:""}`+
         `<span class="cd" data-cd="${esc(nextClose(p)||"")}">${nextClose(p)?("próx. "+countdown(nextClose(p))):""}</span>`+
       `</div></a>`;
   }).join("");
@@ -252,10 +280,21 @@ function renderRoot(){
   const liveHtml = live.length ? `<section><h2>En vivo</h2><div class="next">`+live.map(m=>
     `<div class="nx live"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
     `<span class="cd live">en juego</span></div>`).join("")+`</div></section>` : "";
-  const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><div class="next">`+recent.map(m=>
-    `<div class="nx"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
-    `<span class="score b">${esc(m.actual_result)}${m.provisional?'<span class="prov">*</span>':''}</span>`+
-    `<span class="cd muted">${relTime(m.kickoff)}</span></div>`).join("")+`</div></section>` : "";
+  const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><p class="cap">Toca un resultado para ver tus puntos esperados y ganados en cada polla.</p><div class="next">`+recent.map(m=>{
+    const key=norm(m.home)+"|"+norm(m.away);
+    const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key && x.actual_result);
+      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep,pe:mm.points_earned}:null; }).filter(Boolean);
+    const det=per.map(x=>{ const d=(typeof x.pe==="number"&&typeof x.ep==="number")?x.pe-x.ep:null;
+      return `<div class="pp"><span class="dot" style="background:${esc(x.color)}"></span>`+
+      `<span class="pp-name">${esc(x.name)}</span><span class="pp-pick">${esc(x.pick||"—")}</span>`+
+      `<span class="pp-ep">EP ${numOr(x.ep,2,"—")}</span>`+
+      `<span class="pp-pe">${typeof x.pe==="number"?("+"+x.pe+" pts"):"·"}</span>`+
+      `<span class="pp-d">${d!=null?signed(d,1):""}</span></div>`; }).join("");
+    return `<div class="nx exp"><div class="nx-h"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
+      `<span class="score b">${esc(m.actual_result)}${m.provisional?'<span class="prov">*</span>':''} ▾</span>`+
+      `<span class="cd muted">${relTime(m.kickoff)}</span></div>`+
+      `<div class="pp-list">${det}</div></div>`;
+  }).join("")+`</div></section>` : "";
 
   $("#view").innerHTML = agg+ liveHtml+
     `<section><h2>Próximos partidos</h2><p class="cap">Toca un partido para ver tu apuesta y los puntos esperados en cada polla.</p><div class="next">${nextHtml}</div></section>`+
@@ -303,10 +342,13 @@ function moneyBlock(p){
     `<span class="muted">(${esc(er.basis)})</span>`+
     (er.breakeven_pwin!=null?` · break-even P(ganar) ≥ <b>${(er.breakeven_pwin*100).toFixed(0)}%</b>`:"")+
     `<div class="muted hint">El edge del modelo es el upside sobre esta base.</div></div>` : "";
+  const cb=closeBalance(p);
+  const hoyLine = cb ? `<div class="mrow hoy-row"><span>Si cierra hoy (${cb.position}º)</span>`+
+    `<b>${cb.inMoney?(cb.refund?`devolución ${clp(cb.payout)}`:clp(cb.payout)):"fuera de premios"} · neto ${moneyDelta(cb.net)}</b></div>` : "";
   return `<section class="money"><h2>💰 Dinero</h2><div class="mcard">`+
     `<div class="mrow"><span>Mi aporte</span><b>${clp(mo.stake)}</b></div>`+
     `<div class="mrow"><span>Pozo</span><b>${clp(mo.pot)}${mo.players?` · ${mo.players} jug.`:""}</b></div>`+
-    `<div class="prizes">${prizes}</div>${evLine}</div></section>`;
+    `<div class="prizes">${prizes}</div>${hoyLine}${evLine}</div></section>`;
 }
 
 function renderTab(p){
@@ -315,13 +357,14 @@ function renderTab(p){
     const base=p.baseline&&typeof p.baseline.proj==="number"?p.baseline.proj:null;
     const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
     const liveStat=pt.provisional_n?`<div class="stat live"><b>${pt.live}</b><span>en vivo (prov.)</span></div>`:"";
-    const vara=(base!=null)?`<div class="stat vara"><b>${signed(t.proj_final-base,0)}</b><span>vs tu vara</span></div>`:"";
+    const dv=(base!=null)?(t.proj_final-base):null;
+    const vara=(dv!=null)?`<div class="stat vara ${dv>0?"up":dv<0?"down":""}"><b>${dv>=0?"+":"−"}${Math.abs(dv).toFixed(0)}</b><span>vs tu vara</span></div>`:"";
     body.innerHTML = moneyBlock(p)+
       `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color, base)}`+
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
       `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${vara}${liveStat}${bonusPot}</div></section>`+
       ((p.groups&&p.groups.length)?`<section><h2>Por grupo</h2><p class="cap">Por grupo: <b>real</b> acumulado · <b>esperado</b> actual · marca = <b>tu vara</b> (esperado pre-torneo) · barra completa = <b>máx</b> alcanzable.</p>${groupBars(p.groups,p.color)}</section>`:"")+
-      ((p.matches&&p.matches.length>=2)?`<section><h2>Tendencia</h2><div class="bigspark">${trendCum(p.matches,p.color,300,120,true)}</div><p class="cap">Eje = partidos (orden de inicio). Punteada = <b>esperado acumulado</b> (EP partido a partido) · línea ${esc("sólida")} = <b>puntos reales acumulados</b> (hoy en 0). Pasa el cursor por cada punto para ver el detalle.</p></section>`:"");
+      ((p.matches&&p.matches.length>=2)?`<section><h2>Tendencia</h2><div class="bigspark">${trendCum(p.matches,p.color,300,120,true)}</div><p class="cap">Eje = partidos (orden de inicio). Línea ${esc("sólida")} = <b>puntos reales acumulados</b> (lo ya jugado) · punteada = <b>proyección</b> hacia adelante (real + EP de lo pendiente). Pasa el cursor por cada punto para ver el detalle.</p></section>`:"");
   } else if(TAB==="apuestas"){
     const hasProv=(p.matches||[]).some(m=>m.provisional);
     body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.${hasProv?' <span class="prov">*</span> resultado provisorio (ESPN, antes de que la polla lo confirme).':''}</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
