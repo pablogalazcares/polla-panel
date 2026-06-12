@@ -357,8 +357,9 @@ function renderTab(p){
     const base=p.baseline&&typeof p.baseline.proj==="number"?p.baseline.proj:null;
     const bonusPot=(p.bonuses&&p.bonuses.length)?`<div class="stat"><b>+${pt.bonus_max}</b><span>bonus en juego</span></div>`:"";
     const liveStat=pt.provisional_n?`<div class="stat live"><b>${pt.live}</b><span>en vivo (prov.)</span></div>`:"";
-    const dv=(base!=null)?(t.proj_final-base):null;
-    const vara=(dv!=null)?`<div class="stat vara ${dv>0?"up":dv<0?"down":""}"><b>${dv>=0?"+":"−"}${Math.abs(dv).toFixed(0)}</b><span>vs tu vara</span></div>`:"";
+    // redondea cada término como la barra (esperado/vara) para que el stat sea consistente
+    const dv=(base!=null)?(Math.round(t.proj_final)-Math.round(base)):null;
+    const vara=(dv!=null)?`<div class="stat vara ${dv>0?"up":dv<0?"down":""}"><b>${dv>=0?"+":"−"}${Math.abs(dv)}</b><span>vs tu vara</span></div>`:"";
     body.innerHTML = moneyBlock(p)+
       `<section><h2>Rendimiento</h2>${progress(pt.expected||0, pt.max||0, pt.captured||0, p.color, base)}`+
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
