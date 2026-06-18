@@ -193,6 +193,18 @@ function closeBalance(p){
 }
 function moneyDelta(n){ const c=n>0?"pos":(n<0?"neg":"zero"); const s=n>0?"+":(n<0?"−":""); return `<span class="${c}">${s}${clp(Math.abs(n))}</span>`; }
 
+/* diferencia de puntos con el líder: si voy 1º, ventaja (+) sobre el 2º; si no, distancia (−) al 1º */
+function leaderGap(p){
+  const st=p.standings||[]; if(!st.length) return null;
+  const me=st.find(r=>r.mine); if(!me || typeof me.pts!=="number") return null;
+  const others=st.filter(r=>!r.mine && typeof r.pts==="number");
+  if(me.pos===1 || !others.some(r=>r.pts>me.pts)){            // lidero (o empato arriba)
+    if(!others.length) return {first:true, diff:0};
+    return {first:true, diff: me.pts - Math.max(...others.map(r=>r.pts))};
+  }
+  return {first:false, diff: me.pts - Math.max(...st.map(r=>r.pts))};   // negativo: lo que me falta
+}
+
 /* ---------- carga ---------- */
 const LS_KEY = "polla:data";
 async function loadData(force){
@@ -335,6 +347,9 @@ function renderDetail(p){
     ["% esperado", pt.expected_pct!=null?pt.expected_pct+"%":"—", "esperado/máx"],
   ];
   if(p.standing) kpis.push(["Posición", `${p.standing.position}º`, `de ${p.standing.total_players}`]);
+  const gap=leaderGap(p);
+  if(gap) kpis.push([gap.first?"Ventaja sobre 2º":"Diferencia con 1º",
+    signed(gap.diff,0), gap.first?"vas liderando":"para alcanzar al líder"]);
   const heroHtml=kpis.map(([l,v,s])=>`<div class="kpi"><div class="v">${v}</div><div class="l">${esc(l)}</div><div class="s">${esc(s)}</div></div>`).join("");
 
   const tabs=["resumen","apuestas",
