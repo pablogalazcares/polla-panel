@@ -110,12 +110,15 @@ function multiLine(series, color, w=320, h=140){
   // puntos sobre mi línea (afordancia de hover) + zonas invisibles con el ranking de cada toma
   const dots=mineLines.map(l=>l.pts.map((v,i)=>typeof v==="number"
     ?`<circle cx="${(i*dx).toFixed(1)}" cy="${Y(v)}" r="2" fill="${color}"/>`:"").join("")).join("");
+  POS_PTS=[];
   const hits=ts.map((t,i)=>{
     const rows=lines.map(l=>({label:l.label,pts:l.pts[i],mine:l.mine}))
       .filter(r=>typeof r.pts==="number").sort((a,b)=>b.pts-a.pts);
-    if(!rows.length) return "";
+    if(!rows.length){ POS_PTS.push(null); return ""; }
+    const myi=rows.findIndex(r=>r.mine);
+    POS_PTS.push({i, when:t, mypts:myi>=0?rows[myi].pts:null, mypos:myi>=0?myi+1:null, total:rows.length});
     const tip=koLabel(t)+"\n"+rows.map((r,k)=>`${k+1}. ${r.mine?"★ ":""}${r.label}: ${r.pts}`).join("\n");
-    return `<rect x="${(i*dx-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-tip="${esc(tip).replace(/"/g,"&quot;")}"></rect>`;
+    return `<rect x="${(i*dx-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-i="${i}" data-tip="${esc(tip).replace(/"/g,"&quot;")}"></rect>`;
   }).join("");
   return `<svg class="ml" width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${others}${mine}${dots}${hits}</svg>`;
 }
@@ -153,12 +156,15 @@ function trendCum(matches, color, w=300, h=60, big=false){
   const fwd = fwdFrom < n-1 ? `<polyline points="${seg(fwdFrom,n-1)}" fill="none" stroke="${color}" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.65"/>` : "";
   let dots="", hits="";
   if(big){
+    TREND_PTS=ms.map((m,i)=>({i, cum:proj[i], cumprev:i>0?proj[i-1]:0,
+      gain:(isP[i]?m.points_earned:(+m.ep)), played:isP[i],
+      lbl:`${tri(m.home)}-${tri(m.away)}`, when:m.kickoff}));
     dots=ms.map((m,i)=>isP[i]?`<circle cx="${X(i).toFixed(1)}" cy="${Y(proj[i]).toFixed(1)}" r="2" fill="${color}"/>`:"").join("");
     hits=ms.map((m,i)=>{
       const t=`${i+1}. ${m.home} vs ${m.away}  (${m.fase||""})\n`+
         (isP[i]?`Jugado: ${m.actual_result} → +${m.points_earned}\nReal acumulado: ${proj[i].toFixed(1)}`
                :`Sin jugar · tu pick ${m.user_pick||"—"} · EP ${(+m.ep).toFixed(2)}\nProyección acumulada: ${proj[i].toFixed(1)}`);
-      return `<rect x="${(X(i)-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-tip="${esc(t).replace(/"/g,"&quot;")}"></rect>`;
+      return `<rect x="${(X(i)-dx/2).toFixed(1)}" y="0" width="${dx.toFixed(1)}" height="${h}" fill="transparent" data-i="${i}" data-tip="${esc(t).replace(/"/g,"&quot;")}"></rect>`;
     }).join("");
   }
   return `<svg class="spk" width="${big?'100%':w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`+
@@ -215,6 +221,8 @@ function nextClose(p){
 
 /* ---------- estado + router ---------- */
 let DATA=null, TAB="resumen";
+// datos por punto de los gráficos grandes, para la selección de tramo (dos toques).
+let TREND_PTS=[], POS_PTS=[];
 function route(){
   const m=(location.hash||"").match(/^#\/p\/([^/]+)/);
   const pool=m?poolById(DATA, decodeURIComponent(m[1])):null;
@@ -379,7 +387,7 @@ function renderTab(p){
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
       `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${vara}${liveStat}${bonusPot}</div></section>`+
       ((p.groups&&p.groups.length)?`<section><h2>Por grupo</h2><p class="cap">Por grupo: <b>real</b> acumulado · <b>esperado</b> actual · marca = <b>tu vara</b> (esperado pre-torneo) · barra completa = <b>máx</b> alcanzable.</p>${groupBars(p.groups,p.color)}</section>`:"")+
-      ((p.matches&&p.matches.length>=2)?`<section><h2>Tendencia</h2><div class="bigspark">${trendCum(p.matches,p.color,300,120,true)}</div><p class="cap">Eje = partidos (orden de inicio). Línea ${esc("sólida")} = <b>puntos reales acumulados</b> (lo ya jugado) · punteada = <b>proyección</b> hacia adelante (real + EP de lo pendiente). Pasa el cursor por cada punto para ver el detalle.</p></section>`:"");
+      ((p.matches&&p.matches.length>=2)?`<section><h2>Tendencia</h2><div class="bigspark">${trendCum(p.matches,p.color,300,120,true)}</div><div class="rangesum" data-empty>Toca dos puntos del gráfico para marcar un tramo (cómo te fue).</div><p class="cap">Eje = partidos (orden de inicio). Línea ${esc("sólida")} = <b>puntos reales acumulados</b> (lo ya jugado) · punteada = <b>proyección</b> hacia adelante (real + EP de lo pendiente). Pasa el cursor por cada punto para ver el detalle.</p></section>`:"");
   } else if(TAB==="apuestas"){
     const hasProv=(p.matches||[]).some(m=>m.provisional);
     body.innerHTML=`<p class="cap">Toca un encabezado para ordenar.${hasProv?' <span class="prov">*</span> resultado provisorio (ESPN, antes de que la polla lo confirme).':''}</p><div class="tbl"><table id="bets" class="sortable"></table></div>`;
@@ -388,7 +396,8 @@ function renderTab(p){
     const ml=multiLine(p.leaderboard_series, p.color);
     body.innerHTML =
       (ml?`<section><h2>Evolución de puntos</h2><div class="bigspark">${ml}</div>`+
-          `<p class="cap">Cada línea es un participante (anónimo); la tuya resaltada en color.</p></section>`
+          `<div class="rangesum" data-empty>Toca dos puntos del gráfico para marcar un tramo (cómo te fue).</div>`+
+          `<p class="cap">Cada línea es un participante; la tuya resaltada en color.</p></section>`
          :`<p class="cap">La evolución aparecerá cuando se jueguen partidos (hoy todos en 0).</p>`)+
       `<section><h2>Tabla de posiciones</h2>${standingsList(p.standings)}</section>`;
   } else if(TAB==="bonus"){
@@ -400,6 +409,76 @@ function renderTab(p){
   } else if(TAB==="cambios"){
     body.innerHTML=`<div id="changes" class="changes"></div>`; renderChanges(p);
   }
+  // selección de tramo (dos toques) en los gráficos grandes; nunca debe tumbar el render
+  try{
+    if(TAB==="resumen") wireRange($("#tabbody .bigspark"), TREND_PTS, "trend", p.color);
+    else if(TAB==="posiciones") wireRange($("#tabbody .bigspark"), POS_PTS, "pos", p.color);
+  }catch(e){ console.warn("rango: no se pudo enganchar", e); }
+}
+
+/* ---------- selección de tramo en gráficos (dos toques: inicio / fin) ---------- */
+function fmtDay(iso){ const t=parseISO(iso); if(!t) return ""; const d=new Date(t); return d.getDate()+" "+MES[d.getMonth()]; }
+function rsSigned(x){ const r=Math.round(x*10)/10; const s=r>0?"+":(r<0?"−":""); return s+Math.abs(r); }
+
+function trendSummary(a,b){
+  const A=TREND_PTS[a], B=TREND_PTS[b]; if(!A||!B) return "tramo";
+  const delta=B.cum-A.cumprev;                       // puntos del tramo a..b (real + EP de lo pendiente)
+  const span=TREND_PTS.slice(a,b+1), played=span.filter(p=>p.played);
+  let best=null, worst=null;
+  played.forEach(p=>{ if(!best||p.gain>best.gain) best=p; if(!worst||p.gain<worst.gain) worst=p; });
+  const npend=span.length-played.length;
+  const head=`<b>Partidos ${a+1}→${b+1}</b> · ${rsSigned(delta)} pts`+(npend?` <span class="rs-mut">(${npend} proyectados)</span>`:"");
+  const extra=played.length?`<div class="rs-x">mejor ${best.lbl} +${best.gain} · peor ${worst.lbl} ${worst.gain>0?"+":""}${worst.gain}</div>`:"";
+  return `<div class="rs-h">${head}</div>${extra}`;
+}
+function posSummary(a,b){
+  const A=POS_PTS[a], B=POS_PTS[b]; if(!A||!B) return "tramo";
+  const dpos=(A.mypos!=null&&B.mypos!=null)?(A.mypos-B.mypos):null;   // + = subiste (mejor puesto)
+  const dpts=(A.mypts!=null&&B.mypts!=null)?(B.mypts-A.mypts):null;
+  const mov=dpos==null?"":(dpos>0?`subiste ${dpos} puesto${dpos>1?"s":""}`:dpos<0?`bajaste ${-dpos} puesto${-dpos>1?"s":""}`:"sin cambio de puesto");
+  const head=`<b>${fmtDay(A.when)} → ${fmtDay(B.when)}</b>`+(B.mypos!=null?` · ahora P${B.mypos}/${B.total}`:"");
+  const det=[mov, dpts!=null?`${rsSigned(dpts)} pts`:""].filter(Boolean).join(" · ");
+  return `<div class="rs-h">${head}</div>${det?`<div class="rs-x">${det}</div>`:""}`;
+}
+
+function wireRange(spark, points, kind, color){
+  if(!spark) return;
+  const svg=spark.querySelector("svg"), sum=spark.parentElement.querySelector(".rangesum");
+  if(!svg || !sum || !svg.querySelector("rect[data-i]")) return;
+  const SVGNS="http://www.w3.org/2000/svg";
+  const H=(+(svg.getAttribute("viewBox")||"0 0 300 120").split(/\s+/)[3])||120;
+  let sel={a:null,b:null};
+  const rectOf=i=>svg.querySelector('rect[data-i="'+i+'"]');
+  const clean=()=>svg.querySelectorAll(".selband,.seledge").forEach(e=>e.remove());
+  function edge(i){ const r=rectOf(i); if(!r) return;
+    const x=+r.getAttribute("x")+ +r.getAttribute("width")/2;
+    const ln=document.createElementNS(SVGNS,"line");
+    ln.setAttribute("class","seledge"); ln.setAttribute("x1",x); ln.setAttribute("x2",x);
+    ln.setAttribute("y1",0); ln.setAttribute("y2",H); ln.setAttribute("stroke",color);
+    svg.appendChild(ln);
+  }
+  function reset(){ sel={a:null,b:null}; clean();
+    sum.setAttribute("data-empty",""); sum.textContent="Toca dos puntos del gráfico para marcar un tramo (cómo te fue)."; }
+  function band(a,b){ clean();
+    const ra=rectOf(a), rb=rectOf(b); if(!ra||!rb) return;
+    const xa=+ra.getAttribute("x"), xb=+rb.getAttribute("x")+ +rb.getAttribute("width");
+    const r=document.createElementNS(SVGNS,"rect"); r.setAttribute("class","selband");
+    r.setAttribute("x",Math.min(xa,xb)); r.setAttribute("y",0);
+    r.setAttribute("width",Math.abs(xb-xa)||1); r.setAttribute("height",H); r.setAttribute("fill",color);
+    svg.insertBefore(r, svg.firstChild);   // detrás de las líneas (para que sigan visibles)
+  }
+  function show(a,b){ if(a>b){ const t=a; a=b; b=t; }
+    band(a,b); sum.removeAttribute("data-empty");
+    sum.innerHTML=(kind==="trend"?trendSummary(a,b):posSummary(a,b))+`<button class="rs-clear" type="button">limpiar</button>`;
+    sum.querySelector(".rs-clear").addEventListener("click",ev=>{ ev.stopPropagation(); reset(); });
+  }
+  spark.addEventListener("click",e=>{
+    const r=e.target.closest&&e.target.closest("rect[data-i]"); if(!r) return;
+    const i=+r.getAttribute("data-i");
+    if(sel.a===null || sel.b!==null){ sel={a:i,b:null}; clean(); edge(i);
+      sum.removeAttribute("data-empty"); sum.textContent="Inicio marcado — toca el otro extremo."; }
+    else { sel.b=i; show(sel.a,sel.b); }
+  });
 }
 
 /* ---------- tabla de apuestas ---------- */
@@ -457,7 +536,10 @@ async function refresh(force){
   const {d,src}=await loadData(force);
   if(!d){ setStatus("No pude cargar los datos. Sírvelo con: python3 -m http.server", true); $("#updated").textContent="sin datos"; $("#view").setAttribute("aria-busy","false"); return; }
   DATA=d; setStatus(src==="cache"?"Mostrando última copia guardada (sin conexión).":"", false);
-  $("#updated").textContent="actualizado "+relTime(d.updated_at);
+  // built_at = cuándo se regeneró el panel (incluye la capa provisoria ESPN) = frescura real.
+  // updated_at puede ir atrasado si el scrape oficial de la polla falla. "· en vivo" si hay prov.
+  const liveNow=(d.pools||[]).some(p=>(p.points||{}).provisional_n);
+  $("#updated").textContent="actualizado "+relTime(d.built_at||d.updated_at)+(liveNow?" · en vivo":"");
   route(); $("#view").setAttribute("aria-busy","false");
 }
 
