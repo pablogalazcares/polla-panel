@@ -314,15 +314,17 @@ function renderRoot(){
       `<span class="cd live">en juego ▾</span></div>`+
       `<div class="pp-list">${det}</div></div>`;
   }).join("")+`</div></section>` : "";
-  const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><p class="cap">Toca un resultado para ver tus puntos esperados y ganados en cada polla.</p><div class="next">`+recent.map(m=>{
+  const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><p class="cap">Toca un resultado para ver tus puntos esperados y ganados en cada polla. "pend." = esa polla aún no liquida el partido en su fuente.</p><div class="next">`+recent.map(m=>{
     const key=norm(m.home)+"|"+norm(m.away);
-    const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key && x.actual_result);
-      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep,pe:mm.points_earned}:null; }).filter(Boolean);
+    // todas las pollas que tienen el partido (no solo las que ya lo liquidaron): el EP se conoce
+    // siempre; los puntos quedan "pend." en las pollas cuya fuente aún no marcó el resultado.
+    const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key);
+      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep,pe:mm.points_earned,done:!!mm.actual_result}:null; }).filter(Boolean);
     const det=per.map(x=>{ const d=(typeof x.pe==="number"&&typeof x.ep==="number")?x.pe-x.ep:null;
       return `<div class="pp"><span class="dot" style="background:${esc(x.color)}"></span>`+
       `<span class="pp-name">${esc(x.name)}</span><span class="pp-pick">${esc(x.pick||"—")}</span>`+
       `<span class="pp-ep">EP ${numOr(x.ep,2,"—")}</span>`+
-      `<span class="pp-pe">${typeof x.pe==="number"?("+"+x.pe+" pts"):"·"}</span>`+
+      `<span class="pp-pe">${typeof x.pe==="number"?("+"+x.pe+" pts"):(x.done?"·":"pend.")}</span>`+
       `<span class="pp-d">${d!=null?signed(d,1):""}</span></div>`; }).join("");
     return `<div class="nx exp"><div class="nx-h"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
       `<span class="score b">${esc(m.actual_result)}${m.provisional?'<span class="prov">*</span>':''} ▾</span>`+
