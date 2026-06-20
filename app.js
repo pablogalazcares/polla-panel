@@ -567,7 +567,7 @@ async function refresh(force){
   DATA=d; setStatus(src==="cache"?"Mostrando última copia guardada (sin conexión).":"", false);
   // built_at = cuándo se regeneró el panel (incluye la capa provisoria ESPN) = frescura real.
   // updated_at puede ir atrasado si el scrape oficial de la polla falla. "· en vivo" si hay prov.
-  const liveNow=(d.pools||[]).some(p=>(p.points||{}).provisional_n);
+  const liveNow=(d.pools||[]).some(p=>(p.points||{}).provisional_n || (p.matches||[]).some(m=>m.live));
   $("#updated").textContent="actualizado "+relTime(d.built_at||d.updated_at)+(liveNow?" · en vivo":"");
   route(); $("#view").setAttribute("aria-busy","false");
 }
