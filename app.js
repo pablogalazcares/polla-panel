@@ -183,13 +183,20 @@ function barChart(items, color){   // items: [{label, value}] -> barras horizont
     `<span class="bv">${i.value.toFixed(2)}</span></div>`).join("")+`</div>`;
 }
 
-/* balance si la polla cerrara HOY: pago según mi posición actual − mi aporte */
+/* balance si la polla cerrara HOY: pago según mi posición actual − mi aporte.
+   Empates: los jugadores empatados ocupan los puestos [pos .. pos+N-1] y se REPARTEN la suma
+   de esos premios (división equitativa), en vez de cobrar cada uno el premio completo. */
 function closeBalance(p){
   const mo=p.money, st=p.standing;
   if(!mo || !st || typeof st.position!=="number") return null;
-  const pr=(mo.prizes||[]).find(x=>x.place===st.position);
-  const payout = pr ? (pr.refund ? (mo.stake||0) : (pr.amount||0)) : 0;
-  return {position:st.position, payout, net:payout-(mo.stake||0), inMoney:!!pr, refund:!!(pr&&pr.refund)};
+  const stand=p.standings||[]; const mine=stand.find(x=>x.mine);
+  const tied = mine ? Math.max(1, stand.filter(x=>x.pts===mine.pts).length) : 1;
+  let sum=0;
+  for(let k=0;k<tied;k++){ const pr=(mo.prizes||[]).find(x=>x.place===st.position+k);
+    if(pr) sum += pr.refund ? (mo.stake||0) : (pr.amount||0); }
+  const payout = Math.round(sum/tied);
+  const pr0=(mo.prizes||[]).find(x=>x.place===st.position);
+  return {position:st.position, payout, net:payout-(mo.stake||0), inMoney:sum>0, refund:!!(pr0&&pr0.refund), tied};
 }
 function moneyDelta(n){ const c=n>0?"pos":(n<0?"neg":"zero"); const s=n>0?"+":(n<0?"−":""); return `<span class="${c}">${s}${clp(Math.abs(n))}</span>`; }
 
@@ -303,16 +310,21 @@ function renderRoot(){
   const isFinal=m=>m.actual_result && (!m.provisional || !inWindow(m));
   const live=tm.filter(m=>inWindow(m) && !isFinal(m)).sort((a,b)=>parseISO(a.kickoff)-parseISO(b.kickoff));
   const recent=tm.filter(isFinal).sort((a,b)=>parseISO(b.kickoff)-parseISO(a.kickoff)).slice(0,6);
-  const liveHtml = live.length ? `<section><h2>En vivo</h2><p class="cap">Toca un partido para ver tu apuesta en cada polla.</p><div class="next">`+live.map(m=>{
+  const liveHtml = live.length ? `<section><h2>En vivo</h2><p class="cap">Marcador en juego y los puntos que llevas con ese resultado en cada polla.</p><div class="next">`+live.map(m=>{
     const key=norm(m.home)+"|"+norm(m.away);
     const per=ps.map(p=>{ const mm=(p.matches||[]).find(x=>norm(x.home)+"|"+norm(x.away)===key);
-      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep}:null; }).filter(Boolean);
+      return mm?{name:p.name,color:p.color,pick:mm.user_pick,ep:mm.ep,lp:mm.live_points,lr:mm.live_result,lc:mm.live_clock}:null; }).filter(Boolean);
+    const lr=(per.find(x=>x.lr)||{}).lr, lc=(per.find(x=>x.lc)||{}).lc;   // marcador/minuto (igual en todas)
     const det=per.map(x=>`<div class="pp"><span class="dot" style="background:${esc(x.color)}"></span>`+
       `<span class="pp-name">${esc(x.name)}</span><span class="pp-pick">${esc(x.pick||"—")}</span>`+
-      `<span class="pp-ep">EP ${numOr(x.ep,2,"—")}</span></div>`).join("");
+      (typeof x.lp==="number"
+        ? `<span class="pp-pe">${"+"+x.lp+" pts"}</span>`
+        : `<span class="pp-ep">EP ${numOr(x.ep,2,"—")}</span>`)+`</div>`).join("");
+    const head = lr
+      ? `<span class="score b live">${esc(lr)}${lc?` <span class="cd live">${esc(lc)}</span>`:""} ▾</span>`
+      : `<span class="cd live">en juego ▾</span>`;
     return `<div class="nx exp live"><div class="nx-h"><span class="who"><span class="chip">${esc(phaseShort(m.fase))}</span>${teamCell(m.home,m.away)}</span>`+
-      `<span class="cd live">en juego ▾</span></div>`+
-      `<div class="pp-list">${det}</div></div>`;
+      head+`</div><div class="pp-list">${det}</div></div>`;
   }).join("")+`</div></section>` : "";
   const recentHtml = recent.length ? `<section><h2>Últimos resultados</h2><p class="cap">Toca un resultado para ver tus puntos esperados y ganados en cada polla. "pend." = esa polla aún no liquida el partido en su fuente.</p><div class="next">`+recent.map(m=>{
     const key=norm(m.home)+"|"+norm(m.away);
@@ -382,8 +394,8 @@ function moneyBlock(p){
     (er.breakeven_pwin!=null?` · break-even P(ganar) ≥ <b>${(er.breakeven_pwin*100).toFixed(0)}%</b>`:"")+
     `<div class="muted hint">El edge del modelo es el upside sobre esta base.</div></div>` : "";
   const cb=closeBalance(p);
-  const hoyLine = cb ? `<div class="mrow hoy-row"><span>Si cierra hoy (${cb.position}º)</span>`+
-    `<b>${cb.inMoney?(cb.refund?`devolución ${clp(cb.payout)}`:clp(cb.payout)):"fuera de premios"} · neto ${moneyDelta(cb.net)}</b></div>` : "";
+  const hoyLine = cb ? `<div class="mrow hoy-row"><span>Si cierra hoy (${cb.position}º${cb.tied>1?`, empate ${cb.tied}`:""})</span>`+
+    `<b>${cb.inMoney?(cb.refund?`devolución ${clp(cb.payout)}`:clp(cb.payout))+(cb.tied>1?" (repartido)":""):"fuera de premios"} · neto ${moneyDelta(cb.net)}</b></div>` : "";
   return `<section class="money"><h2>💰 Dinero</h2><div class="mcard">`+
     `<div class="mrow"><span>Mi aporte</span><b>${clp(mo.stake)}</b></div>`+
     `<div class="mrow"><span>Pozo</span><b>${clp(mo.pot)}${mo.players?` · ${mo.players} jug.`:""}</b></div>`+
