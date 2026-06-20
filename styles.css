@@ -121,6 +121,10 @@ tr.played{background:rgba(63,185,80,.06)}
 .badge{background:rgba(88,166,255,.14); color:var(--accent); border-radius:999px;
   padding:2px 9px; font-size:12px; font-weight:600; white-space:nowrap}
 .badge.ghost{background:transparent; border:1px solid var(--line); color:var(--dim); font-weight:500}
+.pool-badges{display:flex; align-items:center; gap:6px; flex:0 0 auto}
+.badge.gap{background:transparent; border:1px solid var(--line); color:var(--dim)}
+.badge.gap.pos{color:var(--pos); border-color:var(--pos)}
+.badge.gap.neg{color:var(--neg); border-color:var(--neg)}
 .dot{width:8px; height:8px; border-radius:50%; display:inline-block; flex:0 0 auto; margin-right:2px}
 
 /* bonus (detalle) */

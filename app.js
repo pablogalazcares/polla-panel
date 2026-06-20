@@ -199,6 +199,16 @@ function closeBalance(p){
   return {position:st.position, payout, net:payout-(mo.stake||0), inMoney:sum>0, refund:!!(pr0&&pr0.refund), tied};
 }
 function moneyDelta(n){ const c=n>0?"pos":(n<0?"neg":"zero"); const s=n>0?"+":(n<0?"−":""); return `<span class="${c}">${s}${clp(Math.abs(n))}</span>`; }
+/* diferencia de puntos con el rival directo: si voy 1º, ventaja sobre el 2º; si no, lo que me
+   falta para el 1º. Empatado arriba -> diff 0. Usa el ranking oficial (standings). */
+function leadGap(p){
+  const st=p.standings||[]; const mine=st.find(x=>x.mine);
+  if(!mine || st.length<2) return null;
+  const top=Math.max(...st.map(x=>x.pts));
+  const others=st.filter(x=>x!==mine).map(x=>x.pts);
+  if(mine.pts>=top){ return {lead:true, diff:mine.pts-Math.max(...others)}; }   // 1º (o empatado)
+  return {lead:false, diff:top-mine.pts};                                        // persiguiendo
+}
 
 /* diferencia de puntos con el líder: si voy 1º, ventaja (+) sobre el 2º; si no, distancia (−) al 1º */
 function leaderGap(p){
@@ -283,10 +293,13 @@ function renderRoot(){
     const players=(p.standing&&p.standing.total_players)||mo.players;
     const stand=p.standing?`<span class="badge">${p.standing.position}º/${p.standing.total_players}</span>`
       :(players?`<span class="badge ghost">${players} jug.</span>`:"");
+    const g=leadGap(p);
+    const gapChip=g?`<span class="badge gap ${g.lead?(g.diff>0?"pos":"zero"):"neg"}">`+
+      `${g.lead?(g.diff>0?`+${g.diff} al 2º`:"empate 1º"):`a ${g.diff} del 1º`}</span>`:"";
     const sp=trendCum(p.matches, p.color, 80, 22, false);
     const pct=pt.expected_pct!=null?`${pt.expected_pct}%`:"—";
     return `<a class="pool" href="#/p/${encodeURIComponent(p.id)}" style="--pc:${esc(p.color)}">`+
-      `<div class="pool-h"><span class="pool-name">${esc(p.name)}</span>${stand}</div>`+
+      `<div class="pool-h"><span class="pool-name">${esc(p.name)}</span><span class="pool-badges">${stand}${gapChip}</span></div>`+
       `<div class="pool-kpis">`+
         `<div><b>${numOr(t.pts_real,0,"0")}</b><span>pts</span></div>`+
         `<div><b>${numOr(t.proj_final,0,"—")}</b><span>proy</span></div>`+
