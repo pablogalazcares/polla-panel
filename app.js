@@ -92,15 +92,15 @@ function groupBars(groups, color){
   }).join("")+`</div>`;
 }
 function phaseBars(phases, color){
-  // Por ronda de eliminación: esperado actual vs vara (esperado pre-torneo) vs máx alcanzable.
-  // Aún no hay partidos KO jugados (real=0); el cruce lo define el bracket simulado.
+  // Por ronda de eliminación, IGUAL que groupBars: real acumulado · esperado actual (real + EP
+  // de lo pendiente) · marca = vara (EP congelada al definirse la ronda) · barra completa = máx.
   return `<div class="gbars">`+(phases||[]).map(g=>{
     const pe=Math.min(100,100*g.expected/g.max), pc=Math.min(100,100*(g.real||0)/g.max);
     const mark=typeof g.baseline==="number"?`<span class="mark" style="left:${Math.min(100,100*g.baseline/g.max).toFixed(1)}%"></span>`:"";
-    const tip=`${g.phase}\nEsperado actual: ${g.expected}`+
-      (g.baseline!=null?`\nTu vara (pre-torneo): ${g.baseline}`:"")+`\nMáx alcanzable: ${g.max}`;
+    const tip=`${g.phase}\nReal acumulado: ${g.real}\nEsperado actual: ${g.expected}`+
+      (g.baseline!=null?`\nTu vara: ${g.baseline}`:"")+`\nMáx alcanzable: ${g.max}`;
     return `<div class="gbar" data-tip="${esc(tip).replace(/"/g,"&quot;")}"><div class="gbar-h"><span class="gl">${esc(g.phase)}</span>`+
-      `<span class="muted">esp ${g.expected}${g.baseline!=null?` · vara ${g.baseline}`:""} · máx ${g.max}</span></div>`+
+      `<span class="muted">real ${g.real} · esp ${g.expected}${g.baseline!=null?` · vara ${g.baseline}`:""} · máx ${g.max}</span></div>`+
       `<div class="prog-bar"><span class="pe" style="width:${pe}%;background:${esc(color)}"></span>`+
       `<span class="pc" style="width:${pc}%"></span>${mark}</div></div>`;
   }).join("")+`</div>`;
@@ -448,7 +448,7 @@ function renderTab(p){
       `<div class="stats"><div class="stat"><b>${pt.expected_pct!=null?pt.expected_pct+"%":"—"}</b><span>esperado/máx</span></div>`+
       `<div class="stat"><b>${pt.max||"—"}</b><span>máx (fase actual)</span></div>${vara}${liveStat}${bonusPot}</div></section>`+
       ((p.groups&&p.groups.length)?`<section><h2>Por grupo</h2><p class="cap">Por grupo: <b>real</b> acumulado · <b>esperado</b> actual · marca = <b>tu vara</b> (esperado pre-torneo) · barra completa = <b>máx</b> alcanzable.</p>${groupBars(p.groups,p.color)}</section>`:"")+
-      ((p.phases&&p.phases.length)?`<section><h2>Por fase (eliminación)</h2><p class="cap">Esperanza de puntos por ronda según el bracket simulado (Monte Carlo): <b>esperado</b> actual · marca = <b>tu vara</b> (esperado pre-torneo) · barra completa = <b>máx</b> alcanzable. Aún no se juega la eliminación; la esperanza se mueve a medida que se definen los cruces.</p>${phaseBars(p.phases,p.color)}</section>`:"")+
+      ((p.phases&&p.phases.length)?`<section><h2>Por fase (eliminación)</h2><p class="cap">Por ronda KO (mismo modelo que grupos): <b>real</b> acumulado · <b>esperado</b> actual · marca = <b>tu vara</b> (esperado al definirse la ronda) · barra completa = <b>máx</b> alcanzable. Cada ronda aparece cuando se define su cruce.</p>${phaseBars(p.phases,p.color)}</section>`:"")+
       ((p.matches&&p.matches.length>=2)?`<section><h2>Tendencia</h2><div class="bigspark">${trendCum(p.matches,p.color,300,120,true)}</div><div class="rangesum" data-empty>Toca dos puntos del gráfico para marcar un tramo (cómo te fue).</div><p class="cap">Eje = partidos (orden de inicio). Línea ${esc("sólida")} = <b>puntos reales acumulados</b> (lo ya jugado) · punteada = <b>proyección</b> hacia adelante (real + EP de lo pendiente). Pasa el cursor por cada punto para ver el detalle.</p></section>`:"");
   } else if(TAB==="apuestas"){
     const hasProv=(p.matches||[]).some(m=>m.provisional);
