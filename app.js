@@ -19,7 +19,12 @@ function teamCell(home, away){
          `<span class="abbr">${fh} ${tri(home)} – ${tri(away)} ${fa}</span>`;
 }
 
-const KO = {dieciseisavos:"16vos", octavos:"8vos", cuartos:"4tos", semifinal:"Semi", final:"Final", eliminatoria:"Elim"};
+// Orden importa: las variantes "16avos/8vos de final" CONTIENEN "final"; los alias de ronda van
+// ANTES que "final"/"eliminatoria" para no mapear un "16avos de final" a "Final" (bug previo).
+const KO = {"16avos":"16vos", "16vos":"16vos", dieciseisavos:"16vos",
+  "8avos":"8vos", "8vos":"8vos", octavos:"8vos",
+  "4tos":"4tos", cuartos:"4tos", semifinal:"Semi", semis:"Semi",
+  "tercer":"3er", final:"Final", eliminatoria:"Elim"};
 const KO_ORDER = ["16vos","8vos","4tos","Semi","Final"];
 function phaseShort(f){
   if(!f) return "";
